@@ -20,17 +20,14 @@ import (
 type Expose struct {
 }
 
-func (e Expose) Analyze(node *parser.Node) []error {
+func (e Expose) Analyze(node *parser.Node, line Line) []error {
 	errs := []error{}
-	for n := node.Next; n != nil; n = n.Next {
-		port, err := strconv.Atoi(n.Value)
-		if err != nil {
-			errs = append(errs, err)
-		}
-		if port < 1024 {
-			errs = append(errs, fmt.Errorf(`dockerfile exposes port %d. TCP/IP port numbers below 1024 are privileged port numbers 
-			that enable only the root user to bind to these ports`, port))
-		}
+	port, err := strconv.Atoi(node.Value)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	if port < 1024 {
+		errs = append(errs, fmt.Errorf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, PrintLineInfo(line)))
 	}
 	return errs
 }

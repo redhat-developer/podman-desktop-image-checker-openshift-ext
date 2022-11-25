@@ -11,7 +11,6 @@
 package command
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -21,19 +20,19 @@ import (
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node) []error {
+func (r Run) Analyze(node *parser.Node, line Line) []error {
 	errs := []error{}
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
-			err := r.analyzeChmodCommand(command)
+			err := r.analyzeChmodCommand(command, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else if r.isChownCommand(command) {
-			err := r.analyzeChownCommand(command)
+			err := r.analyzeChownCommand(command, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -57,7 +56,7 @@ chown -R 1000:1000 /app
 chown 1001 /deployments/run-java.sh
 chown -h 501:20 './AirRun Updates'
 */
-func (r Run) analyzeChownCommand(s string) error {
+func (r Run) analyzeChownCommand(s string, line Line) error {
 	re := regexp.MustCompile(`(\$*\w+)*:(\$*\w+)`)
 
 	match := re.FindStringSubmatch(s)
@@ -66,8 +65,8 @@ func (r Run) analyzeChownCommand(s string) error {
 	}
 	group := match[len(match)-1]
 	if strings.ToLower(group) != "root" && group != "0" {
-		return fmt.Errorf(`warning owner set on %s .
-		In OpenShift the group ID must always be set to the root group (0)`, s)
+		return fmt.Errorf(`owner set on %s %s could cause an unexpected behavior. 
+		In OpenShift the group ID must always be set to the root group (0)`, s, PrintLineInfo(line))
 	}
 	return nil
 }
@@ -76,22 +75,26 @@ func (r Run) isChmodCommand(s string) bool {
 	return IsCommand(s, "chmod")
 }
 
-func (r Run) analyzeChmodCommand(s string) error {
+func (r Run) analyzeChmodCommand(s string, line Line) error {
 	re := regexp.MustCompile(`chmod\s+(\d+)\s+(.*)`)
 	match := re.FindStringSubmatch(s)
 	if len(match) != 3 {
-		return errors.New("unable to fetch args of chmod command")
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
 	}
 	permission := match[1]
 	if len(permission) != 3 {
-		return errors.New("unable to fetch args of chmod command")
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
 	}
 	groupPermission := permission[1:2]
 	if groupPermission != "7" {
-		return fmt.Errorf(`warning permission set on %s .
-		In OpenShift, the directories and files that the processes running in the image need to access 
-		should have their group ownership set to the root group. They also need to be read/writable by that group as 
-		recommended by the OpenShift Container Platform-specific guidelines`, s)
+		proposal := fmt.Sprintf("Is it an executable file? Try updating permissions to %s7%s", permission[0:1], permission[2:3])
+		if groupPermission != "6" {
+			proposal += fmt.Sprintf(" otherwise set it to %s6%s", permission[0:1], permission[2:3])
+		}
+		return fmt.Errorf("permission set on %s %s could cause an unexpected behavior. %s\n"+
+			"Explanation - in Openshift, directories and files need to be read/writable by the root group and "+
+			"files that must be executed should have group execute permissions", s, PrintLineInfo(line), proposal)
 	}
+
 	return nil
 }

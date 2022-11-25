@@ -80,14 +80,14 @@ func TestCorrectChmodCommandWithExecuteGroupPermission(t *testing.T) {
 
 func TestFailChmodCommandWithNonGroupPermission(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 000 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "warning permission set on") {
+	if !strings.Contains(suggestions[0].Error(), "permission set on") {
 		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Error())
 	}
 }
 
 func TestFailChmodCommandWithUserSetButNotGroup(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 700 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "warning permission set on") {
+	if !strings.Contains(suggestions[0].Error(), "permission set on") {
 		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Error())
 	}
 }
@@ -110,7 +110,11 @@ func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []
 	run := command.Run{}
 	suggestions := run.Analyze(&parser.Node{
 		Value: cmd,
-	})
+	},
+		command.Line{
+			Start: 1,
+			End:   1,
+		})
 	if len(suggestions) != numberExpectedErrors {
 		t.Errorf("Expected %d suggestions but they were %d", numberExpectedErrors, len(suggestions))
 	}
