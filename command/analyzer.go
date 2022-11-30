@@ -29,6 +29,7 @@ type Command interface {
 var commandHandlers = map[string]Command{
 	"expose": Expose{},
 	"run":    Run{},
+	"user":   User{},
 }
 
 func Analyze(file *os.File) []error {

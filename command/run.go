@@ -36,11 +36,31 @@ func (r Run) Analyze(node *parser.Node, line Line) []error {
 			if err != nil {
 				errs = append(errs, err)
 			}
+		} else if r.isSudoOrSuCommand(command) {
+			err := r.analyzeSudoAndSuCommand(command, line)
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
-
 	}
 
 	return errs
+}
+
+func (r Run) isSudoOrSuCommand(s string) bool {
+	return IsCommand(s, "sudo") || IsCommand(s, "su")
+}
+
+func (r Run) analyzeSudoAndSuCommand(s string, line Line) error {
+	re := regexp.MustCompile(`(\s+|^)(sudo|su)\s+`)
+
+	match := re.FindStringSubmatch(s)
+	if len(match) > 0 {
+		return fmt.Errorf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
+		In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
+		to runtime errors`, s, PrintLineInfo(line))
+	}
+	return nil
 }
 
 func (r Run) isChownCommand(s string) bool {
@@ -78,6 +98,9 @@ func (r Run) isChmodCommand(s string) bool {
 func (r Run) analyzeChmodCommand(s string, line Line) error {
 	re := regexp.MustCompile(`chmod\s+(\d+)\s+(.*)`)
 	match := re.FindStringSubmatch(s)
+	if len(match) == 0 {
+		return nil
+	}
 	if len(match) != 3 {
 		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
 	}
