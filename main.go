@@ -14,7 +14,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/redhat-developer/docker-openshift-analizer/pkg/cli"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/cli"
 )
 
 func main() {

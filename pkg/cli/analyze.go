@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	analyzer "github.com/redhat-developer/docker-openshift-analizer/pkg/command"
+	analyzer "github.com/redhat-developer/docker-openshift-analyzer/pkg/command"
 	"github.com/spf13/cobra"
 )
 

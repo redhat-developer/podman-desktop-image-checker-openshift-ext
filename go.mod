@@ -1,4 +1,4 @@
-module github.com/redhat-developer/docker-openshift-analizer
+module github.com/redhat-developer/docker-openshift-analyzer
 
 go 1.17
 

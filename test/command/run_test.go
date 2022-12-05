@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
-	"github.com/redhat-developer/docker-openshift-analizer/pkg/command"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/command"
 )
 
 /*

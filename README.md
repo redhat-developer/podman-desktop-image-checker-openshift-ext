@@ -1,6 +1,6 @@
-# Docker OpenShift Analizer
+# Docker OpenShift Analyzer
 
-The Docker OpenShift analizer is a tool whose goal is to analyze a Dockerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.
+The Docker OpenShift analyzer is a tool whose goal is to analyze a Dockerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.
 
 In many cases a Dockerfile could work fine on a Kubernetes cluster and fail on OpenShift because of its security restrictions. This tool should help finding what is wrong and driving users to update their Dockerfiles to make them OpenShift compliant.
 
@@ -105,7 +105,7 @@ For information on getting started, refer to the [CONTRIBUTING instructions](CON
 Feedback & Questions
 ====================
 If you discover an issue please file a bug and we will fix it as soon as possible.
-* File a bug in [GitHub Issues](https://github.com/lstocchi/docker-openshift-analizer).
+* File a bug in [GitHub Issues](https://github.com/lstocchi/docker-openshift-analyzer).
 
 License
 =======
