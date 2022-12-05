@@ -2,12 +2,10 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -18,7 +16,7 @@ Find out more at https://github.com/lstocchi/docker-openshift-analizer
 
 	doaExample = `
   # Analyze the Dockerfile of a project:
-    doa analyze /your/local/project/path
+    doa analyze /your/local/project/path[/Dockerfile_name]
 	`
 
 	rootHelpMessage = "To see a full list of commands, run 'doa --help'"
@@ -35,9 +33,6 @@ func DockerOpenShiftAnalyzerCommands() *cobra.Command {
 		Example: doaExample,
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	flag.CommandLine.String("o", "", "Specify output format, supported format: json")
-	_ = pflag.CommandLine.MarkHidden("o")
 
 	// Create a custom help function that will exit when we enter an invalid command, for example:
 	// doa foobar --help

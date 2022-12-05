@@ -2,9 +2,9 @@
 
 The Docker OpenShift analizer is a tool whose goal is to analyze a Dockerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.
 
-In many cases a Dockerfile could work fine on a Kubernetes cluster and fail on OpenShift because of its security restrictions. This tool should help finding what is wrong and driving users to update their Dockerfiles to make them OpenShift compliant
+In many cases a Dockerfile could work fine on a Kubernetes cluster and fail on OpenShift because of its security restrictions. This tool should help finding what is wrong and driving users to update their Dockerfiles to make them OpenShift compliant.
 
-The directives and commands currently supported are listed below.
+The Dockerfile's directives and commands currently supported are listed below.
 
 ### User directive
 
@@ -68,7 +68,7 @@ with this printed message
 ```
 sudo/su command used in 'sudo node -v' at line 26 could cause an unexpected behavior. 
 In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-to runtime errors
+to an unexpected behavior
 ```
 
 ### Expose directive
@@ -83,6 +83,16 @@ EXPOSE 8080
 with this printed message 
 ```
 port 80 exposed at line 28 could be wrong. TCP/IP port numbers below 1024 are privileged port numbers
+```
+
+Cli
+===
+
+To build and use the cli, execute
+
+```
+go build -o doa[.exe]
+doa[.exe] analyze /your/local/project/path[/Dockerfile_name]
 ```
 
 Contributing

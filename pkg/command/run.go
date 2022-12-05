@@ -58,7 +58,7 @@ func (r Run) analyzeSudoAndSuCommand(s string, line Line) error {
 	if len(match) > 0 {
 		return fmt.Errorf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
 		In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-		to runtime errors`, s, PrintLineInfo(line))
+		to an unexpected behavior`, s, PrintLineInfo(line))
 	}
 	return nil
 }
