@@ -16,28 +16,29 @@ import (
 	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node, line Line) []error {
+func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
-			err := r.analyzeChmodCommand(command, line)
+			err := r.analyzeChmodCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else if r.isChownCommand(command) {
-			err := r.analyzeChownCommand(command, line)
+			err := r.analyzeChownCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else if r.isSudoOrSuCommand(command) {
-			err := r.analyzeSudoAndSuCommand(command, line)
+			err := r.analyzeSudoAndSuCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -51,7 +52,7 @@ func (r Run) isSudoOrSuCommand(s string) bool {
 	return IsCommand(s, "sudo") || IsCommand(s, "su")
 }
 
-func (r Run) analyzeSudoAndSuCommand(s string, line Line) error {
+func (r Run) analyzeSudoAndSuCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`(\s+|^)(sudo|su)\s+`)
 
 	match := re.FindStringSubmatch(s)
@@ -76,7 +77,7 @@ chown -R 1000:1000 /app
 chown 1001 /deployments/run-java.sh
 chown -h 501:20 './AirRun Updates'
 */
-func (r Run) analyzeChownCommand(s string, line Line) error {
+func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`(\$*\w+)*:(\$*\w+)`)
 
 	match := re.FindStringSubmatch(s)
@@ -95,7 +96,7 @@ func (r Run) isChmodCommand(s string) bool {
 	return IsCommand(s, "chmod")
 }
 
-func (r Run) analyzeChmodCommand(s string, line Line) error {
+func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`chmod\s+(\d+)\s+(.*)`)
 	match := re.FindStringSubmatch(s)
 	if len(match) == 0 {

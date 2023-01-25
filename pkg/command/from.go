@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Red Hat, Inc.
+ * Copyright (c) 2023 Red Hat, Inc.
  * Distributed under license by Red Hat, Inc. All rights reserved.
  * This program is made available under the terms of the
  * Eclipse Public License v2.0 which accompanies this distribution,
@@ -12,18 +12,26 @@ package command
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
-type User struct{}
+type From struct {
+}
 
-func (u User) Analyze(node *parser.Node, source utils.Source, line Line) []error {
+func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
-	if strings.EqualFold(node.Value, "root") {
-		errs = append(errs, fmt.Errorf(`USER directive set to root %s could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID`, PrintLineInfo(line)))
+	decompiledNode, err := decompiler.Decompile(node.Value)
+	if err != nil {
+		// unable to decompile base image
+		errs = append(errs, fmt.Errorf("unable to analyze the base image %s", node.Value))
+		return errs
+	}
+	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Parent)
+	if len(errsFromBaseImage) > 0 {
+		errs = append(errs, errsFromBaseImage...)
 	}
 	return errs
 }

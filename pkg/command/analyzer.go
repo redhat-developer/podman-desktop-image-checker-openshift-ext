@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 type Line struct {
@@ -24,13 +25,14 @@ type Line struct {
 	End   int
 }
 type Command interface {
-	Analyze(*parser.Node, Line) []error
+	Analyze(*parser.Node, utils.Source, Line) []error
 }
 
 var commandHandlers = map[string]Command{
-	"expose": Expose{},
-	"run":    Run{},
-	"user":   User{},
+	utils.EXPOSE_INSTRUCTION: Expose{},
+	utils.FROM_INSTRUCTION:   From{},
+	utils.RUN_INSTRUCTION:    Run{},
+	utils.USER_INSTRUCTION:   User{},
 }
 
 func AnalyzePath(path string) []error {
@@ -49,10 +51,10 @@ func AnalyzePath(path string) []error {
 	}
 	defer file.Close()
 
-	return Analyze(file)
+	return AnalyzeFile(file)
 }
 
-func Analyze(file *os.File) []error {
+func AnalyzeFile(file *os.File) []error {
 	res, err := parser.Parse(file)
 	if err != nil {
 		return []error{
@@ -60,21 +62,28 @@ func Analyze(file *os.File) []error {
 		}
 	}
 
+	return AnalyzeNode(res.AST)
+}
+func AnalyzeNode(node *parser.Node) []error {
+	return AnalyzeNodeFromSource(node, utils.Image)
+}
+
+func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []error {
 	suggestions := []error{}
 	commands := []string{}
-	for _, child := range res.AST.Children {
+	for _, child := range node.Children {
 		commands = append(commands, child.Original) // TODO to be used if we need to check previous rows to make sugestions
 		line := Line{
 			Start: child.StartLine,
 			End:   child.EndLine,
 		}
-		handler := commandHandlers[strings.ToLower(child.Value)]
+		handler := commandHandlers[strings.ToUpper(child.Value+" ")]
 		if handler != nil {
 			for n := child.Next; n != nil; n = n.Next {
 				if n.Value == "" {
 					suggestions = append(suggestions, fmt.Errorf("%s %s has an empty value", child.Value, PrintLineInfo(line)))
 				} else {
-					suggestions = append(suggestions, handler.Analyze(n, line)...)
+					suggestions = append(suggestions, handler.Analyze(n, source, line)...)
 				}
 			}
 		}

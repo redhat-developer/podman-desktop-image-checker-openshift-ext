@@ -15,12 +15,13 @@ import (
 	"strconv"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 type Expose struct {
 }
 
-func (e Expose) Analyze(node *parser.Node, line Line) []error {
+func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
 	port, err := strconv.Atoi(node.Value)
 	if err != nil {

@@ -67,7 +67,7 @@ func Decompile(imageName string) (*parser.Node, error) {
 	history := configFile.History
 	sort.Sort(OrderedHistory(history))
 	for _, hist := range history {
-		if hist.Comment != "" && strings.HasPrefix(hist.Comment, "FROM ") {
+		if hist.Comment != "" && strings.HasPrefix(strings.ToUpper(hist.Comment), utils.FROM_INSTRUCTION) {
 			err := line2Node(hist.Comment, root)
 			if err != nil {
 				return nil, err
@@ -85,7 +85,7 @@ func Decompile(imageName string) (*parser.Node, error) {
 	}
 
 	if configFile.Config.User != "" {
-		err := line2Node("USER "+configFile.Config.User, root)
+		err := line2Node(utils.USER_INSTRUCTION+configFile.Config.User, root)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func extractCmd(str string) string {
 	}
 	index = strings.Index(str, utils.RUN_PREFIX)
 	if index >= 0 {
-		return "RUN " + str[index+len(utils.RUN_PREFIX):]
+		return utils.RUN_INSTRUCTION + str[index+len(utils.RUN_PREFIX):]
 	}
 	if isContainerFileInstruction(str) {
 		return str
@@ -122,7 +122,7 @@ func extractCmd(str string) string {
 
 func isContainerFileInstruction(str string) bool {
 	for _, prefix := range CONTAINERFILE_INSTRUCTIONS {
-		if strings.HasPrefix(str, prefix) {
+		if strings.HasPrefix(strings.ToUpper(str), prefix) {
 			return true
 		}
 	}

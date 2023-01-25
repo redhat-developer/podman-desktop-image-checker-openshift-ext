@@ -16,6 +16,7 @@ import (
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/command"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 /*
@@ -111,6 +112,7 @@ func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []
 	suggestions := run.Analyze(&parser.Node{
 		Value: cmd,
 	},
+		utils.Image,
 		command.Line{
 			Start: 1,
 			End:   1,
