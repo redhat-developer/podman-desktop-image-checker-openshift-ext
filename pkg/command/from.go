@@ -29,7 +29,10 @@ func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []error
 		errs = append(errs, fmt.Errorf("unable to analyze the base image %s", node.Value))
 		return errs
 	}
-	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Parent)
+	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Source{
+		Name: node.Value,
+		Type: utils.Parent,
+	})
 	if len(errsFromBaseImage) > 0 {
 		errs = append(errs, errsFromBaseImage...)
 	}

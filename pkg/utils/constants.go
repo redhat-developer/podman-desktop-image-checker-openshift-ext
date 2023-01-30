@@ -23,9 +23,14 @@ const STOPSIGNAL_INSTRUCTION = "STOPSIGNAL "
 const HEALTHCHECK_INSTRUCTION = "HEALTHCHECK "
 const SHELL_INSTRUCTION = "SHELL "
 
-type Source string
+type SourceType string
 
 const (
-	Image  Source = "IMAGE"
-	Parent Source = "PARENT_IMAGE"
+	Image  SourceType = "IMAGE"
+	Parent SourceType = "PARENT_IMAGE"
 )
+
+type Source struct {
+	Name string
+	Type SourceType
+}

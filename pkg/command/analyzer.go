@@ -62,10 +62,10 @@ func AnalyzeFile(file *os.File) []error {
 		}
 	}
 
-	return AnalyzeNode(res.AST)
-}
-func AnalyzeNode(node *parser.Node) []error {
-	return AnalyzeNodeFromSource(node, utils.Image)
+	return AnalyzeNodeFromSource(res.AST, utils.Source{
+		Name: "",
+		Type: utils.Image,
+	})
 }
 
 func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []error {
@@ -81,7 +81,7 @@ func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []error {
 		if handler != nil {
 			for n := child.Next; n != nil; n = n.Next {
 				if n.Value == "" {
-					suggestions = append(suggestions, fmt.Errorf("%s %s has an empty value", child.Value, PrintLineInfo(line)))
+					suggestions = append(suggestions, fmt.Errorf("%s %s has an empty value", child.Value, GenerateErrorLocation(source, line)))
 				} else {
 					suggestions = append(suggestions, handler.Analyze(n, source, line)...)
 				}
@@ -95,7 +95,10 @@ func IsCommand(text string, command string) bool {
 	return strings.Contains(text, command)
 }
 
-func PrintLineInfo(line Line) string {
+func GenerateErrorLocation(source utils.Source, line Line) string {
+	if source.Type == utils.Parent {
+		return fmt.Sprintf("in parent image %s", source.Name)
+	}
 	if line.Start == line.End {
 		return fmt.Sprintf("at line %d", line.Start)
 	}

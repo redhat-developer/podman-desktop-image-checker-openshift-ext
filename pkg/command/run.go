@@ -59,7 +59,7 @@ func (r Run) analyzeSudoAndSuCommand(s string, source utils.Source, line Line) e
 	if len(match) > 0 {
 		return fmt.Errorf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
 		In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-		to an unexpected behavior`, s, PrintLineInfo(line))
+		to an unexpected behavior`, s, GenerateErrorLocation(source, line))
 	}
 	return nil
 }
@@ -87,7 +87,7 @@ func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) error
 	group := match[len(match)-1]
 	if strings.ToLower(group) != "root" && group != "0" {
 		return fmt.Errorf(`owner set on %s %s could cause an unexpected behavior. 
-		In OpenShift the group ID must always be set to the root group (0)`, s, PrintLineInfo(line))
+		In OpenShift the group ID must always be set to the root group (0)`, s, GenerateErrorLocation(source, line))
 	}
 	return nil
 }
@@ -103,11 +103,11 @@ func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error
 		return nil
 	}
 	if len(match) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
 	}
 	permission := match[1]
 	if len(permission) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
 	}
 	groupPermission := permission[1:2]
 	if groupPermission != "7" {
@@ -117,7 +117,7 @@ func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error
 		}
 		return fmt.Errorf("permission set on %s %s could cause an unexpected behavior. %s\n"+
 			"Explanation - in Openshift, directories and files need to be read/writable by the root group and "+
-			"files that must be executed should have group execute permissions", s, PrintLineInfo(line), proposal)
+			"files that must be executed should have group execute permissions", s, GenerateErrorLocation(source, line), proposal)
 	}
 
 	return nil

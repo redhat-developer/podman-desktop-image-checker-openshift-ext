@@ -28,7 +28,7 @@ func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []err
 		errs = append(errs, err)
 	}
 	if port < 1024 {
-		errs = append(errs, fmt.Errorf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, PrintLineInfo(line)))
+		errs = append(errs, fmt.Errorf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)))
 	}
 	return errs
 }
