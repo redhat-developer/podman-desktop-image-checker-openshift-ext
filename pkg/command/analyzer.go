@@ -12,6 +12,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +53,17 @@ func AnalyzePath(path string) []error {
 	defer file.Close()
 
 	return AnalyzeFile(file)
+}
+
+func AnalyzeImage(image string) []error {
+	node, err := decompiler.Decompile(image)
+	if err != nil {
+		return []error{fmt.Errorf("unable to analyze %s - error %s", image, err)}
+	}
+	return AnalyzeNodeFromSource(node, utils.Source{
+		Name: "",
+		Type: utils.Image,
+	})
 }
 
 func AnalyzeFile(file *os.File) []error {
