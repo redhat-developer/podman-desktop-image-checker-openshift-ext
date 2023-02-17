@@ -66,8 +66,14 @@ func Decompile(imageName string) (*parser.Node, error) {
 
 	history := configFile.History
 	sort.Sort(OrderedHistory(history))
-	processed := false
 	for _, hist := range history {
+		if hist.Comment != "" && strings.HasPrefix(strings.ToUpper(hist.Comment), utils.FROM_INSTRUCTION) &&
+			!hist.EmptyLayer {
+			err := line2Node(hist.Comment, root)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if hist.CreatedBy != "" {
 			cmd := extractCmd(hist.CreatedBy)
 			if cmd != "" {
@@ -75,13 +81,6 @@ func Decompile(imageName string) (*parser.Node, error) {
 				if err != nil {
 					return nil, err
 				}
-				processed = true
-			}
-		}
-		if !processed && hist.Comment != "" && strings.HasPrefix(strings.ToUpper(hist.Comment), utils.FROM_INSTRUCTION) {
-			err := line2Node(hist.Comment, root)
-			if err != nil {
-				return nil, err
 			}
 		}
 	}
