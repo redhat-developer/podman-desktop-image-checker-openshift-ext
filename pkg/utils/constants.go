@@ -4,6 +4,7 @@ const NOP = "#(nop) "
 
 const RUN_PREFIX = "/bin/sh -c "
 
+const FROM_INSTRUCTION = "FROM "
 const RUN_INSTRUCTION = "RUN "
 const CMD_INSTRUCTION = "CMD "
 const LABEL_INSTRUCTION = "LABEL "
@@ -21,3 +22,15 @@ const ONBUILD_INSTRUCTION = "ONBUILD "
 const STOPSIGNAL_INSTRUCTION = "STOPSIGNAL "
 const HEALTHCHECK_INSTRUCTION = "HEALTHCHECK "
 const SHELL_INSTRUCTION = "SHELL "
+
+type SourceType string
+
+const (
+	Image  SourceType = "IMAGE"
+	Parent SourceType = "PARENT_IMAGE"
+)
+
+type Source struct {
+	Name string
+	Type SourceType
+}

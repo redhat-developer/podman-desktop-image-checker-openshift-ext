@@ -16,28 +16,29 @@ import (
 	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node, line Line) []error {
+func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
-			err := r.analyzeChmodCommand(command, line)
+			err := r.analyzeChmodCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else if r.isChownCommand(command) {
-			err := r.analyzeChownCommand(command, line)
+			err := r.analyzeChownCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
 		} else if r.isSudoOrSuCommand(command) {
-			err := r.analyzeSudoAndSuCommand(command, line)
+			err := r.analyzeSudoAndSuCommand(command, source, line)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -51,14 +52,14 @@ func (r Run) isSudoOrSuCommand(s string) bool {
 	return IsCommand(s, "sudo") || IsCommand(s, "su")
 }
 
-func (r Run) analyzeSudoAndSuCommand(s string, line Line) error {
+func (r Run) analyzeSudoAndSuCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`(\s+|^)(sudo|su)\s+`)
 
 	match := re.FindStringSubmatch(s)
 	if len(match) > 0 {
 		return fmt.Errorf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
 		In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-		to an unexpected behavior`, s, PrintLineInfo(line))
+		to an unexpected behavior`, s, GenerateErrorLocation(source, line))
 	}
 	return nil
 }
@@ -76,7 +77,7 @@ chown -R 1000:1000 /app
 chown 1001 /deployments/run-java.sh
 chown -h 501:20 './AirRun Updates'
 */
-func (r Run) analyzeChownCommand(s string, line Line) error {
+func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`(\$*\w+)*:(\$*\w+)`)
 
 	match := re.FindStringSubmatch(s)
@@ -86,7 +87,7 @@ func (r Run) analyzeChownCommand(s string, line Line) error {
 	group := match[len(match)-1]
 	if strings.ToLower(group) != "root" && group != "0" {
 		return fmt.Errorf(`owner set on %s %s could cause an unexpected behavior. 
-		In OpenShift the group ID must always be set to the root group (0)`, s, PrintLineInfo(line))
+		In OpenShift the group ID must always be set to the root group (0)`, s, GenerateErrorLocation(source, line))
 	}
 	return nil
 }
@@ -95,18 +96,18 @@ func (r Run) isChmodCommand(s string) bool {
 	return IsCommand(s, "chmod")
 }
 
-func (r Run) analyzeChmodCommand(s string, line Line) error {
+func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error {
 	re := regexp.MustCompile(`chmod\s+(\d+)\s+(.*)`)
 	match := re.FindStringSubmatch(s)
 	if len(match) == 0 {
 		return nil
 	}
 	if len(match) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
 	}
 	permission := match[1]
 	if len(permission) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", PrintLineInfo(line))
+		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
 	}
 	groupPermission := permission[1:2]
 	if groupPermission != "7" {
@@ -116,7 +117,7 @@ func (r Run) analyzeChmodCommand(s string, line Line) error {
 		}
 		return fmt.Errorf("permission set on %s %s could cause an unexpected behavior. %s\n"+
 			"Explanation - in Openshift, directories and files need to be read/writable by the root group and "+
-			"files that must be executed should have group execute permissions", s, PrintLineInfo(line), proposal)
+			"files that must be executed should have group execute permissions", s, GenerateErrorLocation(source, line), proposal)
 	}
 
 	return nil

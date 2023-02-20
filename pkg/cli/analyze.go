@@ -14,10 +14,16 @@ func NewCmdAnalyze() *cobra.Command {
 		Use:     "analyze",
 		Short:   "Analyze the Dockerfile and discover potential issues when deploying it on OpenShift",
 		Long:    "Analyze the Dockerfile and discover potential issues when deploying it on OpenShift. It accepts the project root path or the Dockerfile path.",
-		Args:    cobra.MaximumNArgs(1),
+		Args:    cobra.MaximumNArgs(0),
 		Run:     doAnalyze,
-		Example: `  doa analyze /your/local/project/path[/Dockerfile_name]`,
+		Example: `  doa analyze -f /your/local/project/path[/Dockerfile_name]`,
 	}
+	analyzeCmd.PersistentFlags().String(
+		"f", "", "Container file to analyze",
+	)
+	analyzeCmd.PersistentFlags().String(
+		"i", "", "Image name to analyze",
+	)
 	analyzeCmd.PersistentFlags().String(
 		"o", "", "Specify output format, supported format: json",
 	)
@@ -25,7 +31,9 @@ func NewCmdAnalyze() *cobra.Command {
 }
 
 func doAnalyze(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
+	containerfile := cmd.Flag("f")
+	image := cmd.Flag("i")
+	if containerfile.Value.String() == "" && image.Value.String() == "" {
 		PrintNoArgsWarningMessage(cmd.Name())
 		return
 	}
@@ -38,7 +46,11 @@ func doAnalyze(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	PrintPrettifyOutput(analyzer.AnalyzePath(args[0]))
+	if containerfile.Value.String() != "" {
+		PrintPrettifyOutput(analyzer.AnalyzePath(containerfile.Value.String()))
+	} else if image.Value.String() != "" {
+		PrintPrettifyOutput(analyzer.AnalyzeImage(image.Value.String()))
+	}
 }
 
 func PrintNoArgsWarningMessage(command string) {

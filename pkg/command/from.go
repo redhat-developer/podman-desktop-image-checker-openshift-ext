@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Red Hat, Inc.
+ * Copyright (c) 2023 Red Hat, Inc.
  * Distributed under license by Red Hat, Inc. All rights reserved.
  * This program is made available under the terms of the
  * Eclipse Public License v2.0 which accompanies this distribution,
@@ -12,23 +12,29 @@ package command
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
-type Expose struct {
+type From struct {
 }
 
-func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []error {
+func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
-	port, err := strconv.Atoi(node.Value)
+	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {
-		errs = append(errs, err)
+		// unable to decompile base image
+		errs = append(errs, fmt.Errorf("unable to analyze the base image %s", node.Value))
+		return errs
 	}
-	if port < 1024 {
-		errs = append(errs, fmt.Errorf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)))
+	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Source{
+		Name: node.Value,
+		Type: utils.Parent,
+	})
+	if len(errsFromBaseImage) > 0 {
+		errs = append(errs, errsFromBaseImage...)
 	}
 	return errs
 }

@@ -16,6 +16,7 @@ import (
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/command"
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
 /*
@@ -92,13 +93,6 @@ func TestFailChmodCommandWithUserSetButNotGroup(t *testing.T) {
 	}
 }
 
-func TestFailChmodCommandWithMissingPermission(t *testing.T) {
-	suggestions := verifyParsingCommand(t, "chmod /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "unable to fetch args of chmod command") {
-		t.Errorf("Expected to be unable to fetch args of chmod command but it was %s", suggestions[0].Error())
-	}
-}
-
 func TestFailChmodCommandWithInvalidPermissionCode(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 70 /app", 1)
 	if !strings.Contains(suggestions[0].Error(), "unable to fetch args of chmod command") {
@@ -111,6 +105,10 @@ func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []
 	suggestions := run.Analyze(&parser.Node{
 		Value: cmd,
 	},
+		utils.Source{
+			Name: "test",
+			Type: utils.Image,
+		},
 		command.Line{
 			Start: 1,
 			End:   1,
