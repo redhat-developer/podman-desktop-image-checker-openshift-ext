@@ -6,6 +6,7 @@ require (
 	github.com/google/go-containerregistry v0.12.1
 	github.com/moby/buildkit v0.11.1
 	github.com/spf13/cobra v1.6.1
+	github.com/containers/podman/v4 v4.4.1
 )
 
 require (
