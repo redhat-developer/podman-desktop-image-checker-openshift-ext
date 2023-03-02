@@ -44,7 +44,7 @@ jobs:
         run: go test -v ./...
 
   build-windows:
-    runs-on: ubuntu-windows
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
 
