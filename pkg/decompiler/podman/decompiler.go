@@ -2,6 +2,7 @@ package decompiler
 
 import (
 	"context"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"strings"
@@ -47,38 +48,55 @@ func (o OrderedHistory) Swap(i, j int) {
 
 type PodmanProvider struct{}
 
+func getPodmanConnection() (string, string) {
+	conf, err := config.NewConfig("")
+	if err != nil {
+		return "", ""
+	}
+	uri := ""
+	identity := ""
+	if conf.Engine.ActiveService != "" {
+		uri = conf.Engine.ServiceDestinations[conf.Engine.ActiveService].URI
+		identity = conf.Engine.ServiceDestinations[conf.Engine.ActiveService].Identity
+	}
+	return uri, identity
+}
+
 func (p PodmanProvider) Decompile(imageName string) (*parser.Node, error) {
-	ctx, err := bindings.NewConnection(context.Background(), "unix://.//pipe/default-podman-machine")
-	if err != nil {
-		return nil, nil
-	}
-	image, err := images.GetImage(ctx, "ng", nil)
-	if err != nil {
-		return nil, nil
-	}
-
-	root := &parser.Node{}
-
-	for _, hist := range image.History {
-		if hist.Comment != "" && strings.HasPrefix(strings.ToUpper(hist.Comment), utils.FROM_INSTRUCTION) &&
-			!hist.EmptyLayer {
-			err := line2Node(hist.Comment, root)
-			if err != nil {
-				return nil, err
-			}
+	uri, identity := getPodmanConnection()
+	if uri != "" {
+		ctx, err := bindings.NewConnectionWithIdentity(context.Background(), uri, identity, false)
+		if err != nil {
+			return nil, nil
 		}
-		if hist.CreatedBy != "" {
-			cmd := extractCmd(hist.CreatedBy)
-			if cmd != "" {
-				err := line2Node(cmd, root)
+		image, err := images.GetImage(ctx, imageName, nil)
+		if err != nil {
+			return nil, nil
+		}
+
+		root := &parser.Node{}
+
+		for _, hist := range image.History {
+			if hist.Comment != "" && strings.HasPrefix(strings.ToUpper(hist.Comment), utils.FROM_INSTRUCTION) &&
+				!hist.EmptyLayer {
+				err := line2Node(hist.Comment, root)
 				if err != nil {
 					return nil, err
 				}
 			}
+			if hist.CreatedBy != "" {
+				cmd := extractCmd(hist.CreatedBy)
+				if cmd != "" {
+					err := line2Node(cmd, root)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
 		}
+		return root, nil
 	}
-
-	return root, nil
+	return nil, nil
 }
 
 func line2Node(line string, root *parser.Node) error {
