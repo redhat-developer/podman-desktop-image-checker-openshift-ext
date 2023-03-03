@@ -91,8 +91,6 @@ vendor:
 # Make sure to warn in case we're building without the systemd buildtag.
 bin/doa: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
-		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) \
 		-tags "$(BUILDTAGS)" \
 		-o $@
 
@@ -106,14 +104,12 @@ doa: bin/doa
 
 # DO NOT USE: use local-cross instead
 bin/doa.cross.%:
-	TARGET="$*"; \
-	GOOS="$${TARGET%%.*}"; \
-	GOARCH="$${TARGET##*.}"; \
+	TARGET="$*" \
+	GOOS="$${TARGET%%.*}" \
+	GOARCH="$${TARGET##*.}" \
 	CGO_ENABLED=0 \
 		$(GO) build \
-		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) \
-		-tags '$(BUILDTAGS_CROSS)' \
+		-tags '$(BUILDTAGS)' \
 		-o "$@"
 
 .PHONY: local-cross
@@ -124,5 +120,9 @@ cross: local-cross
 
 .PHONY: test
 test:
+	$(GOCMD) test \
+		-v \
+		-tags "$(BUILDTAGS)" \
+		./...
 
 
