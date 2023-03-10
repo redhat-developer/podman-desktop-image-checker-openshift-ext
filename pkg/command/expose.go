@@ -13,6 +13,7 @@ package command
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
@@ -23,7 +24,12 @@ type Expose struct {
 
 func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []error {
 	errs := []error{}
-	port, err := strconv.Atoi(node.Value)
+	str := node.Value
+	index := strings.IndexByte(node.Value, '/')
+	if index >= 0 {
+		str = node.Value[0:index]
+	}
+	port, err := strconv.Atoi(str)
 	if err != nil {
 		errs = append(errs, err)
 	}
