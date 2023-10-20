@@ -77,7 +77,7 @@ By default ports 1-1023 are privileged ports that only the root user can bind. W
 
 An example of a wrong instruction that the tool would detect is
 ```
-EXPOSE 8080
+EXPOSE 80
 ```
 
 with this printed message 
