@@ -38,18 +38,18 @@ func doAnalyze(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	outputFunc := PrintPrettifyOutput
 	out := cmd.Flag("o")
 	if out.Value.String() != "" && !strings.EqualFold(out.Value.String(), "json") {
 		RedirectErrorStringToStdErrAndExit(fmt.Sprintf("unknown value '%s' for flag %s, type --help for a list of all flags\n", out.Value.String(), out.Name))
 	} else if strings.EqualFold(out.Value.String(), "json") {
-		PrintPrettifyJsonOutput(analyzer.AnalyzePath(args[0]))
-		return
+		outputFunc = PrintPrettifyJsonOutput
 	}
 
 	if containerfile.Value.String() != "" {
-		PrintPrettifyOutput(analyzer.AnalyzePath(containerfile.Value.String()))
+		outputFunc(analyzer.AnalyzePath(containerfile.Value.String()))
 	} else if image.Value.String() != "" {
-		PrintPrettifyOutput(analyzer.AnalyzeImage(image.Value.String()))
+		outputFunc(analyzer.AnalyzeImage(image.Value.String()))
 	}
 }
 
