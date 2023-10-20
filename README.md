@@ -92,7 +92,7 @@ To build and use the cli, execute
 
 ```
 go build -o doa[.exe]
-doa[.exe] analyze /your/local/project/path[/Dockerfile_name]
+doa[.exe] analyze -f /your/local/project/path[/Dockerfile_name]
 ```
 
 Contributing
