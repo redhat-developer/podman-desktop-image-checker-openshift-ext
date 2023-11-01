@@ -91,8 +91,14 @@ Cli
 To build and use the cli, execute
 
 ```
-go build -o doa[.exe]
-doa[.exe] analyze /your/local/project/path[/Dockerfile_name]
+make doa
+./bin/doa analyze /your/local/project/path[/Dockerfile_name]
+```
+
+or to analyze a binary image
+
+```
+./bin/doa --i repository/imagename:tag
 ```
 
 Contributing
