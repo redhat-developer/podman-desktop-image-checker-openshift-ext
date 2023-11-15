@@ -77,7 +77,7 @@ By default ports 1-1023 are privileged ports that only the root user can bind. W
 
 An example of a wrong instruction that the tool would detect is
 ```
-EXPOSE 8080
+EXPOSE 80
 ```
 
 with this printed message 
@@ -92,7 +92,7 @@ To build and use the cli, execute
 
 ```
 go build -o doa[.exe]
-doa[.exe] analyze /your/local/project/path[/Dockerfile_name]
+doa[.exe] analyze -f /your/local/project/path[/Dockerfile_name]
 ```
 
 Contributing

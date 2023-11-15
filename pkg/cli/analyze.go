@@ -18,28 +18,28 @@ func NewCmdAnalyze() *cobra.Command {
 		Run:     doAnalyze,
 		Example: `  doa analyze -f /your/local/project/path[/Dockerfile_name]`,
 	}
-	analyzeCmd.PersistentFlags().String(
-		"f", "", "Container file to analyze",
+	analyzeCmd.PersistentFlags().StringP(
+		"file", "f", "", "Container file to analyze",
 	)
-	analyzeCmd.PersistentFlags().String(
-		"i", "", "Image name to analyze",
+	analyzeCmd.PersistentFlags().StringP(
+		"image", "i", "", "Image name to analyze",
 	)
-	analyzeCmd.PersistentFlags().String(
-		"o", "", "Specify output format, supported format: json",
+	analyzeCmd.PersistentFlags().StringP(
+		"output", "o", "", "Specify output format, supported format: json",
 	)
 	return analyzeCmd
 }
 
 func doAnalyze(cmd *cobra.Command, args []string) {
-	containerfile := cmd.Flag("f")
-	image := cmd.Flag("i")
+	containerfile := cmd.Flag("file")
+	image := cmd.Flag("image")
 	if containerfile.Value.String() == "" && image.Value.String() == "" {
 		PrintNoArgsWarningMessage(cmd.Name())
 		return
 	}
 
 	outputFunc := PrintPrettifyOutput
-	out := cmd.Flag("o")
+	out := cmd.Flag("output")
 	if out.Value.String() != "" && !strings.EqualFold(out.Value.String(), "json") {
 		RedirectErrorStringToStdErrAndExit(fmt.Sprintf("unknown value '%s' for flag %s, type --help for a list of all flags\n", out.Value.String(), out.Name))
 	} else if strings.EqualFold(out.Value.String(), "json") {
