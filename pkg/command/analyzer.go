@@ -44,6 +44,9 @@ func AnalyzePath(path string) []error {
 
 	if fileInfo.IsDir() {
 		path = filepath.Join(path, "Dockerfile")
+		if _, err := os.Stat(path); err != nil {
+			path = filepath.Join(filepath.Base(path), "Containerfile")
+		}
 	}
 
 	file, err := os.Open(path)
@@ -70,7 +73,7 @@ func AnalyzeFile(file *os.File) []error {
 	res, err := parser.Parse(file)
 	if err != nil {
 		return []error{
-			fmt.Errorf("unable to analyze the Dockerfile. Error when parsing %s : %s", file.Name(), err.Error()),
+			fmt.Errorf("unable to analyze the Containerfile. Error when parsing %s : %s", file.Name(), err.Error()),
 		}
 	}
 
