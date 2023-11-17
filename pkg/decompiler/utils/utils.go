@@ -32,14 +32,13 @@ var LABEL_PATTERN = regexp.MustCompile("^LABEL\\s+(.*)=(.*)$")
 func Line2Node(line string, root *parser.Node) error {
 	if strings.HasPrefix(line, utils.LABEL_INSTRUCTION) {
 		return parseLabel(line, root)
-	} else {
-		result, err := parser.Parse(strings.NewReader(line))
-		if err != nil {
-			return err
-		}
-		for _, node := range result.AST.Children {
-			root.AddChild(node, -1, -1)
-		}
+	}
+	result, err := parser.Parse(strings.NewReader(line))
+	if err != nil {
+		return err
+	}
+	for _, node := range result.AST.Children {
+		root.AddChild(node, -1, -1)
 	}
 	return nil
 }
