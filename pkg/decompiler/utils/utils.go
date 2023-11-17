@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
+	"regexp"
 	"strings"
 )
 
@@ -26,7 +27,12 @@ var CONTAINERFILE_INSTRUCTIONS = []string{
 	utils.SHELL_INSTRUCTION,
 }
 
+var LABEL_PATTERN = regexp.MustCompile("^LABEL\\s+(.*)=(.*)$")
+
 func Line2Node(line string, root *parser.Node) error {
+	if strings.HasPrefix(line, utils.LABEL_INSTRUCTION) {
+		return parseLabel(line, root)
+	}
 	result, err := parser.Parse(strings.NewReader(line))
 	if err != nil {
 		return err
@@ -37,10 +43,26 @@ func Line2Node(line string, root *parser.Node) error {
 	return nil
 }
 
+func parseLabel(line string, root *parser.Node) error {
+	elements := LABEL_PATTERN.FindStringSubmatch(line)
+	parent := &parser.Node{
+		Value: "LABEL",
+	}
+	node := parent
+	for _, element := range elements[1:] {
+		node.Next = &parser.Node{
+			Value: element,
+		}
+		node = node.Next
+	}
+	root.AddChild(parent, 0, 0)
+	return nil
+}
+
 func ExtractCmd(str string) string {
 	index := strings.Index(str, utils.NOP)
 	if index > 0 {
-		return str[index+len(utils.NOP):]
+		return strings.TrimSpace(str[index+len(utils.NOP):])
 	}
 	index = strings.Index(str, utils.RUN_PREFIX)
 	if index >= 0 {
