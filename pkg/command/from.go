@@ -12,7 +12,6 @@ package command
 
 import (
 	"fmt"
-
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
@@ -21,7 +20,12 @@ import (
 type From struct {
 }
 
+const SCRATCH_IMAGE_NAME = "scratch"
+
 func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []error {
+	if node.Value == SCRATCH_IMAGE_NAME {
+		return nil
+	}
 	errs := []error{}
 	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {

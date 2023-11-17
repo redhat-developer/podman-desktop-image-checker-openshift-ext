@@ -19,3 +19,10 @@ func TestCheckNginx(t *testing.T) {
 		})
 	}
 }
+
+func TestFromScratch(t *testing.T) {
+	errors := AnalyzePath("resources/Containerfile.fromscratch")
+	if len(errors) > 0 {
+		t.Error("Image with FROM scratch returns errors")
+	}
+}
