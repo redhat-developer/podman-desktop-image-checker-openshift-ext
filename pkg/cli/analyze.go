@@ -12,11 +12,11 @@ import (
 func NewCmdAnalyze() *cobra.Command {
 	analyzeCmd := &cobra.Command{
 		Use:     "analyze",
-		Short:   "Analyze the Dockerfile and discover potential issues when deploying it on OpenShift",
-		Long:    "Analyze the Dockerfile and discover potential issues when deploying it on OpenShift. It accepts the project root path or the Dockerfile path.",
+		Short:   "Analyze the Containerfile and discover potential issues when deploying it on OpenShift",
+		Long:    "Analyze the Containerfile and discover potential issues when deploying it on OpenShift. It accepts the project root path or the Containerfile path.",
 		Args:    cobra.MaximumNArgs(0),
 		Run:     doAnalyze,
-		Example: `  doa analyze -f /your/local/project/path[/Dockerfile_name]`,
+		Example: `  doa analyze -f /your/local/project/path[/Containerfile_name]`,
 	}
 	analyzeCmd.PersistentFlags().StringP(
 		"file", "f", "", "Container file to analyze",
@@ -55,10 +55,10 @@ func doAnalyze(cmd *cobra.Command, args []string) {
 
 func PrintNoArgsWarningMessage(command string) {
 	fmt.Printf(`
-No arg received. Did you forget to add the dockerfile or project path to analyze?
+No arg received. Did you forget to add the Containerfile or project path to analyze?
 
 Expected:
-  doa %s /your/local/project/path[/Dockerfile_name] [flags]
+  doa %s /your/local/project/path[/Containerfile_name] [flags]
 
 To find out more, run 'doa %s --help'
 `, command, command)
