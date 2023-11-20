@@ -67,7 +67,7 @@ func AnalyzePath(path string) []Result {
 			{
 				Name:        "Analyze error",
 				Status:      StatusFailed,
-				Severity:    SeverityLow,
+				Severity:    SeverityCritical,
 				Description: fmt.Sprintf("unable to analyze %s - error %s", path, err),
 			},
 		}
@@ -103,7 +103,7 @@ func AnalyzeImage(image string) []Result {
 			{
 				Name:        "Analyze error",
 				Status:      StatusFailed,
-				Severity:    SeverityLow,
+				Severity:    SeverityCritical,
 				Description: fmt.Sprintf("unable to analyze %s - error %s", image, err),
 			},
 		}
