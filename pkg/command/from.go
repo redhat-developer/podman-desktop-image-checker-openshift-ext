@@ -12,6 +12,7 @@ package command
 
 import (
 	"fmt"
+
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
@@ -22,15 +23,20 @@ type From struct {
 
 const SCRATCH_IMAGE_NAME = "scratch"
 
-func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []error {
+func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
 	if node.Value == SCRATCH_IMAGE_NAME {
 		return nil
 	}
-	errs := []error{}
+	errs := []Result{}
 	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {
 		// unable to decompile base image
-		errs = append(errs, fmt.Errorf("unable to analyze the base image %s", node.Value))
+		errs = append(errs, Result{
+			Name:        "Analyze error",
+			Status:      StatusFailed,
+			Severity:    SeverityLow,
+			Description: fmt.Sprintf("unable to analyze the base image %s", node.Value),
+		})
 		return errs
 	}
 	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Source{
