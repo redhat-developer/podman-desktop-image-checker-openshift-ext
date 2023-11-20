@@ -45,29 +45,29 @@ func TestCorrectParsingOfChownCommandWithUserAndRootGroupAsNumberAndLongFlag(t *
 
 func TestFailIfChownCommandWithUserAndNonRootGroup(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chown -R node:node /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "In OpenShift the group ID must always be set to the root group (0)") {
-		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "In OpenShift the group ID must always be set to the root group (0)") {
+		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Description)
 	}
 }
 
 func TestFailIfChownCommandWithUserAndNonRootGroupAndLongFlag(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chown --recursive=node:node /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "In OpenShift the group ID must always be set to the root group (0)") {
-		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "In OpenShift the group ID must always be set to the root group (0)") {
+		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Description)
 	}
 }
 
 func TestFailIfChownCommandWithUserAndNonRootGroupAsNumber(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chown -R 1000:1000 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "In OpenShift the group ID must always be set to the root group (0)") {
-		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "In OpenShift the group ID must always be set to the root group (0)") {
+		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Description)
 	}
 }
 
 func TestFailIfChownCommandWithUserAndNonRootGroupAsNumberAndLongFlag(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chown --recursive=1000:1000 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "In OpenShift the group ID must always be set to the root group (0)") {
-		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "In OpenShift the group ID must always be set to the root group (0)") {
+		t.Errorf("Expected to be wrong group ID error but it was %s", suggestions[0].Description)
 	}
 }
 
@@ -81,26 +81,26 @@ func TestCorrectChmodCommandWithExecuteGroupPermission(t *testing.T) {
 
 func TestFailChmodCommandWithNonGroupPermission(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 000 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "permission set on") {
-		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "permission set on") {
+		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Description)
 	}
 }
 
 func TestFailChmodCommandWithUserSetButNotGroup(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 700 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "permission set on") {
-		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "permission set on") {
+		t.Errorf("Expected to be wrong group permissions error but it was %s", suggestions[0].Description)
 	}
 }
 
 func TestFailChmodCommandWithInvalidPermissionCode(t *testing.T) {
 	suggestions := verifyParsingCommand(t, "chmod 70 /app", 1)
-	if !strings.Contains(suggestions[0].Error(), "unable to fetch args of chmod command") {
-		t.Errorf("Expected to be unable to fetch args of chmod command but it was %s", suggestions[0].Error())
+	if !strings.Contains(suggestions[0].Description, "unable to fetch args of chmod command") {
+		t.Errorf("Expected to be unable to fetch args of chmod command but it was %s", suggestions[0].Description)
 	}
 }
 
-func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []error {
+func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []command.Result {
 	run := command.Run{}
 	suggestions := run.Analyze(&parser.Node{
 		Value: cmd,
