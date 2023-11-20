@@ -64,17 +64,17 @@ To find out more, run 'doa %s --help'
 `, command, command)
 }
 
-func PrintPrettifyJsonOutput(errs []analyzer.Result) {
+func PrintPrettifyJsonOutput(results []analyzer.Result) {
 	var bytes []byte
 	var err error
-	if bytes, err = json.MarshalIndent(errs, "", "    "); err != nil {
+	if bytes, err = json.MarshalIndent(results, "", "    "); err != nil {
 		fmt.Println("error while converting output to json. Please try again without the output (--o) flag")
 	}
 	fmt.Println(string(bytes))
 }
 
-func PrintPrettifyOutput(errs []analyzer.Result) {
-	for i, sug := range errs {
+func PrintPrettifyOutput(results []analyzer.Result) {
+	for i, sug := range results {
 		fmt.Printf("%d - %s (%s): %s\n\n", i+1, sug.Name, sug.Severity, sug.Description)
 	}
 }

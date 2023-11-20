@@ -27,24 +27,24 @@ func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []Resul
 	if node.Value == SCRATCH_IMAGE_NAME {
 		return nil
 	}
-	errs := []Result{}
+	results := []Result{}
 	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {
 		// unable to decompile base image
-		errs = append(errs, Result{
+		results = append(results, Result{
 			Name:        "Analyze error",
 			Status:      StatusFailed,
 			Severity:    SeverityLow,
 			Description: fmt.Sprintf("unable to analyze the base image %s", node.Value),
 		})
-		return errs
+		return results
 	}
 	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Source{
 		Name: node.Value,
 		Type: utils.Parent,
 	})
 	if len(errsFromBaseImage) > 0 {
-		errs = append(errs, errsFromBaseImage...)
+		results = append(results, errsFromBaseImage...)
 	}
-	return errs
+	return results
 }

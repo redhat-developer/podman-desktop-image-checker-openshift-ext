@@ -22,7 +22,7 @@ import (
 type Run struct{}
 
 func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
-	errs := []Result{}
+	results := []Result{}
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
@@ -30,22 +30,22 @@ func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []Result
 		if r.isChmodCommand(command) {
 			err := r.analyzeChmodCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, *err)
+				results = append(results, *err)
 			}
 		} else if r.isChownCommand(command) {
 			err := r.analyzeChownCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, *err)
+				results = append(results, *err)
 			}
 		} else if r.isSudoOrSuCommand(command) {
 			err := r.analyzeSudoAndSuCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, *err)
+				results = append(results, *err)
 			}
 		}
 	}
 
-	return errs
+	return results
 }
 
 func (r Run) isSudoOrSuCommand(s string) bool {
