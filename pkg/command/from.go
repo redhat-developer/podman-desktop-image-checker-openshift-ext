@@ -12,7 +12,7 @@ package command
 
 import (
 	"fmt"
-
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
@@ -21,30 +21,35 @@ import (
 type From struct {
 }
 
+var fromUuid = uuid.New()
+
+func (f From) UUID() uuid.UUID {
+	return fromUuid
+}
+
 const SCRATCH_IMAGE_NAME = "scratch"
 
-func (f From) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
+func (f From) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Source, line Line) {
 	if node.Value == SCRATCH_IMAGE_NAME {
-		return nil
+		return
 	}
-	results := []Result{}
+	commandContext := ctx.CommandContext(fromUuid)
 	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {
 		// unable to decompile base image
-		results = append(results, Result{
+		commandContext.Results = append(commandContext.Results, Result{
 			Name:        "Analyze error",
 			Status:      StatusFailed,
 			Severity:    SeverityLow,
 			Description: fmt.Sprintf("unable to analyze the base image %s", node.Value),
 		})
-		return results
+		return
 	}
-	errsFromBaseImage := AnalyzeNodeFromSource(decompiledNode, utils.Source{
+	AnalyzeNodeFromSource(ctx, decompiledNode, utils.Source{
 		Name: node.Value,
 		Type: utils.Parent,
 	})
-	if len(errsFromBaseImage) > 0 {
-		results = append(results, errsFromBaseImage...)
-	}
-	return results
+}
+
+func (f From) PostProcess(context AnalyzeContext) {
 }

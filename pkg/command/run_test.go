@@ -11,11 +11,11 @@
 package command
 
 import (
+	"github.com/google/uuid"
 	"strings"
 	"testing"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
-	"github.com/redhat-developer/docker-openshift-analyzer/pkg/command"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
@@ -100,19 +100,23 @@ func TestFailChmodCommandWithInvalidPermissionCode(t *testing.T) {
 	}
 }
 
-func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []command.Result {
-	run := command.Run{}
-	suggestions := run.Analyze(&parser.Node{
+func verifyParsingCommand(t *testing.T, cmd string, numberExpectedErrors int) []Result {
+	run := Run{}
+	ctx := AnalyzeContext{
+		CommandContexts: make(map[uuid.UUID]*CommandContext),
+	}
+	run.Analyze(ctx, &parser.Node{
 		Value: cmd,
 	},
 		utils.Source{
 			Name: "test",
 			Type: utils.Image,
 		},
-		command.Line{
+		Line{
 			Start: 1,
 			End:   1,
 		})
+	suggestions := ctx.CommandContext(run.UUID()).Results
 	if len(suggestions) != numberExpectedErrors {
 		t.Errorf("Expected %d suggestions but they were %d", numberExpectedErrors, len(suggestions))
 	}

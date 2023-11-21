@@ -12,6 +12,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"regexp"
 	"strings"
 
@@ -21,31 +22,38 @@ import (
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
-	results := []Result{}
+var runUuid = uuid.New()
+
+func (r Run) UUID() uuid.UUID {
+	return runUuid
+}
+
+func (r Run) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Source, line Line) {
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
+	commandContext := ctx.CommandContext(runUuid)
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
-			err := r.analyzeChmodCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeChmodCommand(command, source, line)
+			if result != nil {
+				commandContext.Results = append(commandContext.Results, *result)
 			}
 		} else if r.isChownCommand(command) {
-			err := r.analyzeChownCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeChownCommand(command, source, line)
+			if result != nil {
+				commandContext.Results = append(commandContext.Results, *result)
 			}
 		} else if r.isSudoOrSuCommand(command) {
-			err := r.analyzeSudoAndSuCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeSudoAndSuCommand(command, source, line)
+			if result != nil {
+				commandContext.Results = append(commandContext.Results, *result)
 			}
 		}
 	}
+}
 
-	return results
+func (r Run) PostProcess(context AnalyzeContext) {
 }
 
 func (r Run) isSudoOrSuCommand(s string) bool {

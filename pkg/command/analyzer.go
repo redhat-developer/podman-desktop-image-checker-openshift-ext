@@ -12,6 +12,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,12 +46,40 @@ type Result struct {
 	Description string         `json:"description"`
 }
 
+type CommandContext = struct {
+	Infos   map[any]any
+	Results []Result
+}
+
+type AnalyzeContext struct {
+	CommandContexts map[uuid.UUID]*CommandContext
+}
+
 type Line struct {
 	Start int
 	End   int
 }
+
+func newCommandContext() CommandContext {
+	ctx := CommandContext{}
+	ctx.Infos = make(map[any]any)
+	return ctx
+}
+
+func (c AnalyzeContext) CommandContext(uuid uuid.UUID) *CommandContext {
+	commandContext, found := c.CommandContexts[uuid]
+	if !found {
+		nCommandContext := newCommandContext()
+		c.CommandContexts[uuid] = &nCommandContext
+		commandContext = &nCommandContext
+	}
+	return commandContext
+}
+
 type Command interface {
-	Analyze(*parser.Node, utils.Source, Line) []Result
+	UUID() uuid.UUID
+	Analyze(AnalyzeContext, *parser.Node, utils.Source, Line)
+	PostProcess(AnalyzeContext)
 }
 
 var commandHandlers = map[string]Command{
@@ -108,7 +137,10 @@ func AnalyzeImage(image string) []Result {
 			},
 		}
 	}
-	return AnalyzeNodeFromSource(node, utils.Source{
+	ctx := AnalyzeContext{
+		CommandContexts: make(map[uuid.UUID]*CommandContext),
+	}
+	return AnalyzeNodeFromSource(ctx, node, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
@@ -127,13 +159,17 @@ func AnalyzeFile(file *os.File) []Result {
 		}
 	}
 
-	return AnalyzeNodeFromSource(res.AST, utils.Source{
+	ctx := AnalyzeContext{
+		CommandContexts: make(map[uuid.UUID]*CommandContext),
+	}
+
+	return AnalyzeNodeFromSource(ctx, res.AST, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
 }
 
-func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []Result {
+func AnalyzeNodeFromSource(ctx AnalyzeContext, node *parser.Node, source utils.Source) []Result {
 	suggestions := []Result{}
 	commands := []string{}
 	for _, child := range node.Children {
@@ -154,10 +190,15 @@ func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []Result {
 					})
 
 				} else {
-					suggestions = append(suggestions, handler.Analyze(n, source, line)...)
+					handler.Analyze(ctx, n, source, line)
 				}
 			}
 		}
+	}
+	for key, _ := range commandHandlers {
+		handler := commandHandlers[key]
+		handler.PostProcess(ctx)
+		suggestions = append(suggestions, ctx.CommandContext(handler.UUID()).Results...)
 	}
 	return suggestions
 }

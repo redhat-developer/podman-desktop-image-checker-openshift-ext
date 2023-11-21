@@ -22,7 +22,13 @@ func TestCheckNginx(t *testing.T) {
 
 func TestFromScratch(t *testing.T) {
 	errors := AnalyzePath("resources/Containerfile.fromscratch")
-	if len(errors) > 0 {
+	if len(errors) != 1 {
 		t.Error("Image with FROM scratch returns errors")
+	}
+}
+func TestFromNginxWithUser(t *testing.T) {
+	errors := AnalyzePath("resources/Containerfile.fromnginxwithuser")
+	if len(errors) != 1 {
+		t.Error("Image with FROM nginx with USER returns errors")
 	}
 }
