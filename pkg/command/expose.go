@@ -22,8 +22,8 @@ import (
 type Expose struct {
 }
 
-func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []error {
-	errs := []error{}
+func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
+	results := []Result{}
 	str := node.Value
 	index := strings.IndexByte(node.Value, '/')
 	if index >= 0 {
@@ -31,10 +31,20 @@ func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []err
 	}
 	port, err := strconv.Atoi(str)
 	if err != nil {
-		errs = append(errs, err)
+		results = append(results, Result{
+			Name:        "Wrong port value",
+			Status:      StatusFailed,
+			Severity:    SeverityCritical,
+			Description: err.Error(),
+		})
 	}
 	if port < 1024 {
-		errs = append(errs, fmt.Errorf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)))
+		results = append(results, Result{
+			Name:        "Privileged port exposed",
+			Status:      StatusFailed,
+			Severity:    SeverityHigh,
+			Description: fmt.Sprintf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)),
+		})
 	}
-	return errs
+	return results
 }

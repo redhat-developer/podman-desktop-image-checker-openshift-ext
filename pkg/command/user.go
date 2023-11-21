@@ -20,10 +20,15 @@ import (
 
 type User struct{}
 
-func (u User) Analyze(node *parser.Node, source utils.Source, line Line) []error {
-	errs := []error{}
+func (u User) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
+	results := []Result{}
 	if strings.EqualFold(node.Value, "root") {
-		errs = append(errs, fmt.Errorf(`USER directive set to root %s could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID`, GenerateErrorLocation(source, line)))
+		results = append(results, Result{
+			Name:        "User set to root",
+			Status:      StatusFailed,
+			Severity:    SeverityMedium,
+			Description: fmt.Sprintf(`USER directive set to root %s could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID`, GenerateErrorLocation(source, line)),
+		})
 	}
-	return errs
+	return results
 }

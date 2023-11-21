@@ -21,8 +21,8 @@ import (
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []error {
-	errs := []error{}
+func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
+	results := []Result{}
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
@@ -30,36 +30,41 @@ func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []error 
 		if r.isChmodCommand(command) {
 			err := r.analyzeChmodCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, err)
+				results = append(results, *err)
 			}
 		} else if r.isChownCommand(command) {
 			err := r.analyzeChownCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, err)
+				results = append(results, *err)
 			}
 		} else if r.isSudoOrSuCommand(command) {
 			err := r.analyzeSudoAndSuCommand(command, source, line)
 			if err != nil {
-				errs = append(errs, err)
+				results = append(results, *err)
 			}
 		}
 	}
 
-	return errs
+	return results
 }
 
 func (r Run) isSudoOrSuCommand(s string) bool {
 	return IsCommand(s, "sudo") || IsCommand(s, "su")
 }
 
-func (r Run) analyzeSudoAndSuCommand(s string, source utils.Source, line Line) error {
+func (r Run) analyzeSudoAndSuCommand(s string, source utils.Source, line Line) *Result {
 	re := regexp.MustCompile(`(\s+|^)(sudo|su)\s+`)
 
 	match := re.FindStringSubmatch(s)
 	if len(match) > 0 {
-		return fmt.Errorf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
+		return &Result{
+			Name:     "Use of sudo/su command",
+			Status:   StatusFailed,
+			Severity: SeverityMedium,
+			Description: fmt.Sprintf(`sudo/su command used in '%s' %s could cause an unexpected behavior. 
 		In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-		to an unexpected behavior`, s, GenerateErrorLocation(source, line))
+		to an unexpected behavior`, s, GenerateErrorLocation(source, line)),
+		}
 	}
 	return nil
 }
@@ -68,7 +73,9 @@ func (r Run) isChownCommand(s string) bool {
 	return IsCommand(s, "chown")
 }
 
-/* to be tested on
+/*
+	to be tested on
+
 chown -R node:node /app
 chown --recursive=node:node
 chown +x test
@@ -77,7 +84,7 @@ chown -R 1000:1000 /app
 chown 1001 /deployments/run-java.sh
 chown -h 501:20 './AirRun Updates'
 */
-func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) error {
+func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) *Result {
 	re := regexp.MustCompile(`(\$*\w+)*:(\$*\w+)`)
 
 	match := re.FindStringSubmatch(s)
@@ -86,8 +93,13 @@ func (r Run) analyzeChownCommand(s string, source utils.Source, line Line) error
 	}
 	group := match[len(match)-1]
 	if strings.ToLower(group) != "root" && group != "0" {
-		return fmt.Errorf(`owner set on %s %s could cause an unexpected behavior. 
-		In OpenShift the group ID must always be set to the root group (0)`, s, GenerateErrorLocation(source, line))
+		return &Result{
+			Name:     "Owner set",
+			Status:   StatusFailed,
+			Severity: SeverityMedium,
+			Description: fmt.Sprintf(`owner set on %s %s could cause an unexpected behavior. 
+			In OpenShift the group ID must always be set to the root group (0)`, s, GenerateErrorLocation(source, line)),
+		}
 	}
 	return nil
 }
@@ -96,18 +108,28 @@ func (r Run) isChmodCommand(s string) bool {
 	return IsCommand(s, "chmod")
 }
 
-func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error {
+func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) *Result {
 	re := regexp.MustCompile(`chmod\s+(\d+)\s+(.*)`)
 	match := re.FindStringSubmatch(s)
 	if len(match) == 0 {
 		return nil
 	}
 	if len(match) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
+		return &Result{
+			Name:        "Syntax error",
+			Status:      StatusFailed,
+			Severity:    SeverityCritical,
+			Description: fmt.Sprintf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line)),
+		}
 	}
 	permission := match[1]
 	if len(permission) != 3 {
-		return fmt.Errorf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line))
+		return &Result{
+			Name:        "Syntax error",
+			Status:      StatusFailed,
+			Severity:    SeverityCritical,
+			Description: fmt.Sprintf("unable to fetch args of chmod command %s. Is it correct?", GenerateErrorLocation(source, line)),
+		}
 	}
 	groupPermission := permission[1:2]
 	if groupPermission != "7" {
@@ -115,9 +137,14 @@ func (r Run) analyzeChmodCommand(s string, source utils.Source, line Line) error
 		if groupPermission != "6" {
 			proposal += fmt.Sprintf(" otherwise set it to %s6%s", permission[0:1], permission[2:3])
 		}
-		return fmt.Errorf("permission set on %s %s could cause an unexpected behavior. %s\n"+
-			"Explanation - in Openshift, directories and files need to be read/writable by the root group and "+
-			"files that must be executed should have group execute permissions", s, GenerateErrorLocation(source, line), proposal)
+		return &Result{
+			Name:     "Permission set",
+			Status:   StatusFailed,
+			Severity: SeverityMedium,
+			Description: fmt.Sprintf("permission set on %s %s could cause an unexpected behavior. %s\n"+
+				"Explanation - in Openshift, directories and files need to be read/writable by the root group and "+
+				"files that must be executed should have group execute permissions", s, GenerateErrorLocation(source, line), proposal),
+		}
 	}
 
 	return nil
