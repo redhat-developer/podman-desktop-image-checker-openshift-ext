@@ -11,8 +11,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"regexp"
 	"strings"
 
@@ -22,38 +22,42 @@ import (
 
 type Run struct{}
 
-var runUuid = uuid.New()
+type runResultKeyType struct{}
 
-func (r Run) UUID() uuid.UUID {
-	return runUuid
-}
+var runResultKey runResultKeyType
 
-func (r Run) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Source, line Line) {
+func (r Run) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
-	commandContext := ctx.CommandContext(runUuid)
+	var results []Result
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
 			result := r.analyzeChmodCommand(command, source, line)
 			if result != nil {
-				commandContext.Results = append(commandContext.Results, *result)
+				results = append(results, *result)
 			}
 		} else if r.isChownCommand(command) {
 			result := r.analyzeChownCommand(command, source, line)
 			if result != nil {
-				commandContext.Results = append(commandContext.Results, *result)
+				results = append(results, *result)
 			}
 		} else if r.isSudoOrSuCommand(command) {
 			result := r.analyzeSudoAndSuCommand(command, source, line)
 			if result != nil {
-				commandContext.Results = append(commandContext.Results, *result)
+				results = append(results, *result)
 			}
 		}
 	}
+	return context.WithValue(ctx, runResultKey, results)
 }
 
-func (r Run) PostProcess(context AnalyzeContext) {
+func (r Run) PostProcess(ctx context.Context) []Result {
+	result := ctx.Value(runResultKey)
+	if result == nil {
+		return nil
+	}
+	return result.([]Result)
 }
 
 func (r Run) isSudoOrSuCommand(s string) bool {

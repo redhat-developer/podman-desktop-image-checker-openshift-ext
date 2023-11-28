@@ -11,8 +11,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"strconv"
 	"strings"
 
@@ -23,22 +23,20 @@ import (
 type Expose struct {
 }
 
-var exposeUuid = uuid.New()
+type exposeResultKeyType struct{}
 
-func (e Expose) UUID() uuid.UUID {
-	return exposeUuid
-}
+var exposeResultKey exposeResultKeyType
 
-func (e Expose) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Source, line Line) {
+func (e Expose) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
 	str := node.Value
-	commandContext := ctx.CommandContext(exposeUuid)
 	index := strings.IndexByte(node.Value, '/')
 	if index >= 0 {
 		str = node.Value[0:index]
 	}
+	var results []Result
 	port, err := strconv.Atoi(str)
 	if err != nil {
-		commandContext.Results = append(commandContext.Results, Result{
+		results = append(results, Result{
 			Name:        "Wrong port value",
 			Status:      StatusFailed,
 			Severity:    SeverityCritical,
@@ -46,14 +44,20 @@ func (e Expose) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Sour
 		})
 	}
 	if port < 1024 {
-		commandContext.Results = append(commandContext.Results, Result{
+		results = append(results, Result{
 			Name:        "Privileged port exposed",
 			Status:      StatusFailed,
 			Severity:    SeverityHigh,
 			Description: fmt.Sprintf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)),
 		})
 	}
+	return context.WithValue(ctx, exposeResultKey, results)
 }
 
-func (e Expose) PostProcess(context AnalyzeContext) {
+func (e Expose) PostProcess(ctx context.Context) []Result {
+	result := ctx.Value(exposeResultKey)
+	if result == nil {
+		return nil
+	}
+	return result.([]Result)
 }

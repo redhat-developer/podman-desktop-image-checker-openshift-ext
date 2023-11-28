@@ -11,8 +11,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,40 +46,14 @@ type Result struct {
 	Description string         `json:"description"`
 }
 
-type CommandContext = struct {
-	Infos   map[any]any
-	Results []Result
-}
-
-type AnalyzeContext struct {
-	CommandContexts map[uuid.UUID]*CommandContext
-}
-
 type Line struct {
 	Start int
 	End   int
 }
 
-func newCommandContext() CommandContext {
-	ctx := CommandContext{}
-	ctx.Infos = make(map[any]any)
-	return ctx
-}
-
-func (c AnalyzeContext) CommandContext(uuid uuid.UUID) *CommandContext {
-	commandContext, found := c.CommandContexts[uuid]
-	if !found {
-		nCommandContext := newCommandContext()
-		c.CommandContexts[uuid] = &nCommandContext
-		commandContext = &nCommandContext
-	}
-	return commandContext
-}
-
 type Command interface {
-	UUID() uuid.UUID
-	Analyze(AnalyzeContext, *parser.Node, utils.Source, Line)
-	PostProcess(AnalyzeContext)
+	Analyze(context.Context, *parser.Node, utils.Source, Line) context.Context
+	PostProcess(ctx context.Context) []Result
 }
 
 var commandHandlers = map[string]Command{
@@ -137,13 +111,12 @@ func AnalyzeImage(image string) []Result {
 			},
 		}
 	}
-	ctx := AnalyzeContext{
-		CommandContexts: make(map[uuid.UUID]*CommandContext),
-	}
-	return AnalyzeNodeFromSource(ctx, node, utils.Source{
+	ctx := context.Background()
+	suggestions, _ := AnalyzeNodeFromSource(ctx, node, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
 func AnalyzeFile(file *os.File) []Result {
@@ -159,17 +132,16 @@ func AnalyzeFile(file *os.File) []Result {
 		}
 	}
 
-	ctx := AnalyzeContext{
-		CommandContexts: make(map[uuid.UUID]*CommandContext),
-	}
+	ctx := context.Background()
 
-	return AnalyzeNodeFromSource(ctx, res.AST, utils.Source{
+	suggestions, _ := AnalyzeNodeFromSource(ctx, res.AST, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
-func AnalyzeNodeFromSource(ctx AnalyzeContext, node *parser.Node, source utils.Source) []Result {
+func AnalyzeNodeFromSource(ctx context.Context, node *parser.Node, source utils.Source) ([]Result, context.Context) {
 	suggestions := []Result{}
 	commands := []string{}
 	for _, child := range node.Children {
@@ -190,17 +162,17 @@ func AnalyzeNodeFromSource(ctx AnalyzeContext, node *parser.Node, source utils.S
 					})
 
 				} else {
-					handler.Analyze(ctx, n, source, line)
+					ctx = handler.Analyze(ctx, n, source, line)
 				}
 			}
 		}
 	}
 	for key, _ := range commandHandlers {
 		handler := commandHandlers[key]
-		handler.PostProcess(ctx)
-		suggestions = append(suggestions, ctx.CommandContext(handler.UUID()).Results...)
+
+		suggestions = append(suggestions, handler.PostProcess(ctx)...)
 	}
-	return suggestions
+	return suggestions, ctx
 }
 
 func IsCommand(text string, command string) bool {

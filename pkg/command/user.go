@@ -11,8 +11,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -21,38 +21,41 @@ import (
 
 type User struct{}
 
-var userUuid = uuid.New()
+type userResultKeyType struct{}
+type userProcessedKeyType struct{}
 
-const PROCESSED_KEY = "processed"
+var userResultKey userResultKeyType
+var userProcessedKey userProcessedKeyType
 
-func (u User) UUID() uuid.UUID {
-	return userUuid
-}
-
-func (u User) Analyze(ctx AnalyzeContext, node *parser.Node, source utils.Source, line Line) {
-	commandContext := ctx.CommandContext(userUuid)
+func (u User) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
+	var results []Result
 	if strings.EqualFold(node.Value, "root") {
-		commandContext.Results = append(commandContext.Results, Result{
+		results = append(results, Result{
 			Name:        "User set to root",
 			Status:      StatusFailed,
 			Severity:    SeverityMedium,
 			Description: fmt.Sprintf(`USER directive set to root %s could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID`, GenerateErrorLocation(source, line)),
 		})
-	} else {
-		commandContext.Results = nil
 	}
-	commandContext.Infos[PROCESSED_KEY] = true
+	ctx = context.WithValue(ctx, userResultKey, results)
+	return context.WithValue(ctx, userProcessedKey, true)
 }
 
-func (u User) PostProcess(ctx AnalyzeContext) {
-	commandContext := ctx.CommandContext(userUuid)
-	if _, processed := commandContext.Infos[PROCESSED_KEY]; !processed {
-		commandContext.Results = append(commandContext.Results, Result{
+func (u User) PostProcess(ctx context.Context) []Result {
+	processed := ctx.Value(userProcessedKey)
+	res := ctx.Value(userResultKey)
+	var results []Result
+	if res != nil {
+		results = res.([]Result)
+	}
+	if processed == nil {
+		results = append(results, Result{
 			Name:        "User set to root",
 			Status:      StatusFailed,
 			Severity:    SeverityMedium,
 			Description: fmt.Sprintf("USER directive implicitely set to root could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID"),
 		})
 	}
+	return results
 
 }
