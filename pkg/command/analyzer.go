@@ -11,6 +11,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -49,8 +50,10 @@ type Line struct {
 	Start int
 	End   int
 }
+
 type Command interface {
-	Analyze(*parser.Node, utils.Source, Line) []Result
+	Analyze(context.Context, *parser.Node, utils.Source, Line) context.Context
+	PostProcess(ctx context.Context) []Result
 }
 
 var commandHandlers = map[string]Command{
@@ -108,10 +111,12 @@ func AnalyzeImage(image string) []Result {
 			},
 		}
 	}
-	return AnalyzeNodeFromSource(node, utils.Source{
+	ctx := context.Background()
+	suggestions, _ := AnalyzeNodeFromSource(ctx, node, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
 func AnalyzeFile(file *os.File) []Result {
@@ -127,13 +132,16 @@ func AnalyzeFile(file *os.File) []Result {
 		}
 	}
 
-	return AnalyzeNodeFromSource(res.AST, utils.Source{
+	ctx := context.Background()
+
+	suggestions, _ := AnalyzeNodeFromSource(ctx, res.AST, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
-func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []Result {
+func AnalyzeNodeFromSource(ctx context.Context, node *parser.Node, source utils.Source) ([]Result, context.Context) {
 	suggestions := []Result{}
 	commands := []string{}
 	for _, child := range node.Children {
@@ -154,12 +162,17 @@ func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []Result {
 					})
 
 				} else {
-					suggestions = append(suggestions, handler.Analyze(n, source, line)...)
+					ctx = handler.Analyze(ctx, n, source, line)
 				}
 			}
 		}
 	}
-	return suggestions
+	for key, _ := range commandHandlers {
+		handler := commandHandlers[key]
+
+		suggestions = append(suggestions, handler.PostProcess(ctx)...)
+	}
+	return suggestions, ctx
 }
 
 func IsCommand(text string, command string) bool {

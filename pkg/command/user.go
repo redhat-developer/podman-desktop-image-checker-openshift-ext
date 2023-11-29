@@ -11,6 +11,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -20,8 +21,14 @@ import (
 
 type User struct{}
 
-func (u User) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
-	results := []Result{}
+type userResultKeyType struct{}
+type userProcessedKeyType struct{}
+
+var userResultKey userResultKeyType
+var userProcessedKey userProcessedKeyType
+
+func (u User) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
+	var results []Result
 	if strings.EqualFold(node.Value, "root") {
 		results = append(results, Result{
 			Name:        "User set to root",
@@ -30,5 +37,25 @@ func (u User) Analyze(node *parser.Node, source utils.Source, line Line) []Resul
 			Description: fmt.Sprintf(`USER directive set to root %s could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID`, GenerateErrorLocation(source, line)),
 		})
 	}
+	ctx = context.WithValue(ctx, userResultKey, results)
+	return context.WithValue(ctx, userProcessedKey, true)
+}
+
+func (u User) PostProcess(ctx context.Context) []Result {
+	processed := ctx.Value(userProcessedKey)
+	res := ctx.Value(userResultKey)
+	var results []Result
+	if res != nil {
+		results = res.([]Result)
+	}
+	if processed == nil {
+		results = append(results, Result{
+			Name:        "User set to root",
+			Status:      StatusFailed,
+			Severity:    SeverityMedium,
+			Description: fmt.Sprintf("USER directive implicitely set to root could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID"),
+		})
+	}
 	return results
+
 }

@@ -11,6 +11,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -21,31 +22,42 @@ import (
 
 type Run struct{}
 
-func (r Run) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
-	results := []Result{}
+type runResultKeyType struct{}
+
+var runResultKey runResultKeyType
+
+func (r Run) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
 
 	// let's split the run command by &&. E.g chmod 070 /app && chmod 070 /app/routes && chmod 070 /app/bin
 	splittedCommands := strings.Split(node.Value, "&&")
+	var results []Result
 	for _, command := range splittedCommands {
 		if r.isChmodCommand(command) {
-			err := r.analyzeChmodCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeChmodCommand(command, source, line)
+			if result != nil {
+				results = append(results, *result)
 			}
 		} else if r.isChownCommand(command) {
-			err := r.analyzeChownCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeChownCommand(command, source, line)
+			if result != nil {
+				results = append(results, *result)
 			}
 		} else if r.isSudoOrSuCommand(command) {
-			err := r.analyzeSudoAndSuCommand(command, source, line)
-			if err != nil {
-				results = append(results, *err)
+			result := r.analyzeSudoAndSuCommand(command, source, line)
+			if result != nil {
+				results = append(results, *result)
 			}
 		}
 	}
+	return context.WithValue(ctx, runResultKey, results)
+}
 
-	return results
+func (r Run) PostProcess(ctx context.Context) []Result {
+	result := ctx.Value(runResultKey)
+	if result == nil {
+		return nil
+	}
+	return result.([]Result)
 }
 
 func (r Run) isSudoOrSuCommand(s string) bool {

@@ -11,6 +11,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,13 +23,17 @@ import (
 type Expose struct {
 }
 
-func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []Result {
-	results := []Result{}
+type exposeResultKeyType struct{}
+
+var exposeResultKey exposeResultKeyType
+
+func (e Expose) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
 	str := node.Value
 	index := strings.IndexByte(node.Value, '/')
 	if index >= 0 {
 		str = node.Value[0:index]
 	}
+	var results []Result
 	port, err := strconv.Atoi(str)
 	if err != nil {
 		results = append(results, Result{
@@ -46,5 +51,13 @@ func (e Expose) Analyze(node *parser.Node, source utils.Source, line Line) []Res
 			Description: fmt.Sprintf(`port %d exposed %s could be wrong. TCP/IP port numbers below 1024 are privileged port numbers`, port, GenerateErrorLocation(source, line)),
 		})
 	}
-	return results
+	return context.WithValue(ctx, exposeResultKey, results)
+}
+
+func (e Expose) PostProcess(ctx context.Context) []Result {
+	result := ctx.Value(exposeResultKey)
+	if result == nil {
+		return nil
+	}
+	return result.([]Result)
 }
