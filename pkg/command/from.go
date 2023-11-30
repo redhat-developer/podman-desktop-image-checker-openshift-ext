@@ -34,7 +34,7 @@ func (f From) Analyze(ctx context.Context, node *parser.Node, source utils.Sourc
 	decompiledNode, err := decompiler.Decompile(node.Value)
 	if err != nil {
 		// unable to decompile base image
-		ctx = context.WithValue(ctx, fromResultKey, []Result{
+		return context.WithValue(ctx, fromResultKey, []Result{
 			Result{
 				Name:        "Analyze error",
 				Status:      StatusFailed,
