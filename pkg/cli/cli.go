@@ -10,9 +10,8 @@ import (
 
 var (
 	doaLong = `
-The Docker OpenShift Analyzer is a CLI tool for finding and highlighting potential issues a Containerfile could have on an OpenShift cluster.
-Find out more at https://github.com/lstocchi/docker-openshift-analyzer
-	`
+The OpenShift Image Checker is a CLI tool for finding and highlighting potential issues a Containerfile could have on an OpenShift cluster.
+Find out more at https://github.com/redhat-developer/podman-desktop-image-checker-ext	`
 
 	doaExample = `
   # Analyze the Containerfile of a project:
