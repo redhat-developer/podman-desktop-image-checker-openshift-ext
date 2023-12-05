@@ -27,5 +27,5 @@ func Decompile(imageName string) (*parser.Node, error) {
 			return node, nil
 		}
 	}
-	return nil, errors.Errorf("Can't resolved umage %s", imageName)
+	return nil, errors.Errorf("Can't resolve image %s", imageName)
 }
