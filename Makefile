@@ -44,16 +44,6 @@ CROSS_BUILD_TARGETS := \
 	bin/doa.cross.darwin.amd64 \
 	bin/doa.cross.darwin.arm64
 
-CROSS_BUILD_TARGETS_ARM64 := \
-	bin/doa.cross.linux.arm64 \
-	bin/doa.cross.windows.arm64 \
-	bin/doa.cross.darwin.arm64
-
-CROSS_BUILD_TARGETS_AMD64 := \
-	bin/doa.cross.linux.amd64 \
-	bin/doa.cross.windows.amd64 \
-	bin/doa.cross.darwin.amd64
-
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
@@ -123,12 +113,6 @@ bin/doa.cross.%:
 
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile binary for multiple architectures
-
-.PHONY: local-cross-amd64
-local-cross-amd64: $(CROSS_BUILD_TARGETS_AMD64) ## Cross compile binary for several AMD64 systems
-
-.PHONY: local-cross-arm64
-local-cross-arm64: $(CROSS_BUILD_TARGETS_ARM64) ## Cross compile binary for several ARM64 systems
 
 .PHONY: cross
 cross: local-cross

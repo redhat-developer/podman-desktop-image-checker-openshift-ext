@@ -3,28 +3,32 @@
 IMAGE=$1
 TAG=$2
 
-podman build \
-    --platform linux/arm64,windows/arm64,darwin/arm64 \
-    --build-arg PLATFORM_ARG=arm64 \
-    -t ${IMAGE}:${TAG}-arm64 \
-    .
-
-podman push \
-    ${IMAGE}:${TAG}-arm64
-
-podman build \
-    --platform linux/amd64,windows/amd64,darwin/amd64 \
-    --build-arg PLATFORM_ARG=amd64 \
-    -t ${IMAGE}:${TAG}-amd64 \
-    .
-
-podman push \
-    ${IMAGE}:${TAG}-amd64 \
+for os in linux windows darwin; do
+    target="doa"
+    if [[ ${os} -eq 'windows' ]]; then
+        target="doa.exe"
+    fi
+    for arch in arm64 amd64; do 
+        podman build \
+            --platform ${os}/${arch} \
+            --build-arg PLATFORM_ARG=${arch} \
+            --build-arg OS_ARG=${os} \
+            --build-arg TARGET_ARG=${target} \
+            -t ${IMAGE}:${TAG}-${os}-${arch} \
+            .
+        podman push \
+            ${IMAGE}:${TAG}-${os}-${arch}
+    done
+done
 
 podman manifest create \
     ${IMAGE}:${TAG} \
-    ${IMAGE}:${TAG}-arm64 \
-    ${IMAGE}:${TAG}-amd64
+    ${IMAGE}:${TAG}-linux-arm64 \
+    ${IMAGE}:${TAG}-windows-arm64 \
+    ${IMAGE}:${TAG}-darwin-arm64 \
+    ${IMAGE}:${TAG}-linux-amd64 \
+    ${IMAGE}:${TAG}-windows-amd64 \
+    ${IMAGE}:${TAG}-darwin-amd64
 
 podman manifest push \
     ${IMAGE}:${TAG}

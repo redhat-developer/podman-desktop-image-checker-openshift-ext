@@ -41,6 +41,7 @@ COPY ./podman-desktop-extension/README.md /extension/
 
 FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/go-toolset:1.19.13-4.1697647145 as cli-builder
 ARG PLATFORM_ARG
+ARG OS_ARG
 
 COPY ./go.mod /opt/app-root/src
 COPY ./go.sum /opt/app-root/src
@@ -48,11 +49,13 @@ COPY ./main.go /opt/app-root/src
 COPY ./pkg /opt/app-root/src/pkg/
 COPY ./Makefile /opt/app-root/src
 
-RUN make local-cross-${PLATFORM_ARG}
+RUN make bin/doa.cross.${OS_ARG}.${PLATFORM_ARG}
 
 
 FROM --platform=$TARGETPLATFORM scratch
 ARG PLATFORM_ARG
+ARG OS_ARG
+ARG TARGET_ARG
 
 LABEL org.opencontainers.image.title="OpenShift Checker" \
         org.opencontainers.image.description="Analyze a Containerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster." \
@@ -61,6 +64,4 @@ LABEL org.opencontainers.image.title="OpenShift Checker" \
 
 COPY --from=extension-builder /extension /extension
 
-COPY --from=cli-builder /opt/app-root/src/bin/doa.cross.linux.${PLATFORM_ARG} /extension/doa.linux
-COPY --from=cli-builder /opt/app-root/src/bin/doa.cross.windows.${PLATFORM_ARG} /extension/doa.exe
-COPY --from=cli-builder /opt/app-root/src/bin/doa.cross.darwin.${PLATFORM_ARG} /extension/doa.darwin
+COPY --from=cli-builder /opt/app-root/src/bin/doa.cross.${OS_ARG}.${PLATFORM_ARG} /extension/${TARGET_ARG}
