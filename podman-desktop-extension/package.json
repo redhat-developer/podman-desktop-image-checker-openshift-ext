@@ -21,7 +21,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@podman-desktop/api": "https://gitpkg.now.sh/containers/podman-desktop/packages/extension-api?main",
+    "@podman-desktop/api": "next",
     "@types/node": "^20.9.4",
     "mkdirp": "^3.0.1",
     "typescript": "5.0.4",
