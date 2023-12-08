@@ -19,18 +19,6 @@ import * as extensionApi from '@podman-desktop/api';
 
 // Activate the extension asynchronously
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
-  // Create a provider with an example name, ID and icon
-  const provider = extensionApi.provider.createProvider({
-    name: 'OpenShift Checker',
-    id: 'openshift-checker',
-    status: 'unknown',
-    images: {
-      icon: './icon.png',
-      logo: './icon.png',
-    },
-  });
-  extensionContext.subscriptions.push(provider);
-
   const checker = extensionApi.imageChecker.registerImageCheckerProvider({
     check: async (
       image: extensionApi.ImageInfo,
