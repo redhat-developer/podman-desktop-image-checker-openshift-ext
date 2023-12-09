@@ -24,12 +24,8 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
       image: extensionApi.ImageInfo,
       token?: extensionApi.CancellationToken,
     ): Promise<extensionApi.ImageChecks> => {
-      let path: string;
-      if (extensionApi.env.isLinux) {
-        path = `${__dirname}/../doa.linux`;
-      } else if (extensionApi.env.isMac) {
-        path = `${__dirname}/../doa.darwin`;
-      } else if (extensionApi.env.isWindows) {
+      let path = `${__dirname}/../doa`;
+      if (extensionApi.env.isWindows) {
         path = `${__dirname}\\..\\doa.exe`;
       }
       const result = await extensionApi.process.exec(

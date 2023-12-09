@@ -5,7 +5,7 @@ TAG=$2
 
 for os in linux windows darwin; do
     target="doa"
-    if [[ ${os} -eq 'windows' ]]; then
+    if [ "${os}" = "windows" ]; then
         target="doa.exe"
     fi
     for arch in arm64 amd64; do 
