@@ -7,7 +7,7 @@
   "publisher": "podman-desktop",
   "license": "Apache-2.0",
   "engines": {
-    "podman-desktop": "^1.5.3"
+    "podman-desktop": "^1.6.3"
   },
   "main": "./dist/extension.js",
   "contributes": {
@@ -21,7 +21,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@podman-desktop/api": "next",
+    "@podman-desktop/api": "^1.6.3",
     "@types/node": "^18",
     "mkdirp": "^3.0.1",
     "typescript": "5.3.3",
