@@ -21,6 +21,7 @@ RUN npm install -g yarn
 
 COPY ./podman-desktop-extension/src /opt/app-root/src/src
 COPY ./podman-desktop-extension/package.json /opt/app-root/src/
+COPY --chown=1001 ./podman-desktop-extension/yarn.lock /opt/app-root/src/
 COPY ./podman-desktop-extension/tsconfig.json /opt/app-root/src/
 COPY ./podman-desktop-extension/vite.config.js /opt/app-root/src/
 COPY ./podman-desktop-extension/vitest.config.js /opt/app-root/src/
