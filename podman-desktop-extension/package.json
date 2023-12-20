@@ -1,0 +1,31 @@
+{
+  "name": "openshift-checker",
+  "displayName": "Red Hat OpenShift Checker",
+  "description": "Analyze a Containerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.",
+  "version": "0.0.1",
+  "icon": "icon.png",
+  "publisher": "podman-desktop",
+  "license": "Apache-2.0",
+  "engines": {
+    "podman-desktop": "^1.6.3"
+  },
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {}
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run --coverage --passWithNoTests",
+    "test:watch": "vitest watch --coverage --passWithNoTests",
+    "watch": "tsc -w"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@podman-desktop/api": "^1.6.3",
+    "@types/node": "^18",
+    "mkdirp": "^3.0.1",
+    "typescript": "5.3.3",
+    "vite": "^5.0.9",
+    "zip-local": "^0.3.5"
+  }
+}
