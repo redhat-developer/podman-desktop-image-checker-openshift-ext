@@ -95,6 +95,11 @@ go build -o doa[.exe]
 doa[.exe] analyze -f /your/local/project/path[/Dockerfile_name]
 ```
 
+Podman Desktop Extension
+========================
+
+To install the extension on Podman Desktop, you can go to Resources > Extensions, then "Install extension from the OCI image", using the image name: ` ghcr.io/redhat-developer/podman-desktop-image-checker-openshift-ext:<release_name>`
+
 Contributing
 ============
 This is an open source project open to anyone. This project welcomes contributions and suggestions!
