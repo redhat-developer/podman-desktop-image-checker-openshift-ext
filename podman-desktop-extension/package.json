@@ -4,7 +4,7 @@
   "description": "Analyze a Containerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.",
   "version": "0.0.1",
   "icon": "icon.png",
-  "publisher": "podman-desktop",
+  "publisher": "redhat",
   "license": "Apache-2.0",
   "engines": {
     "podman-desktop": "^1.6.3"
