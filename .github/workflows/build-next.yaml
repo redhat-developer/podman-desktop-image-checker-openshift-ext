@@ -20,9 +20,6 @@ name: CI
 on:
   push:
     branches: [ 'main' ]
-  # todo: will be removed before to be merged
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
