@@ -29,9 +29,12 @@ var exposeResultKey exposeResultKeyType
 
 func (e Expose) Analyze(ctx context.Context, node *parser.Node, source utils.Source, line Line) context.Context {
 	str := node.Value
-	index := strings.IndexByte(node.Value, '/')
+	if strings.HasPrefix(str, "map[") && strings.HasSuffix(str, "]") {
+		str = str[4 : len(str)-1]
+	}
+	index := strings.IndexByte(str, '/')
 	if index >= 0 {
-		str = node.Value[0:index]
+		str = str[0:index]
 	}
 	var results []Result
 	port, err := strconv.Atoi(str)
