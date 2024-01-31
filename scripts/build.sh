@@ -8,7 +8,7 @@ for os in linux windows darwin; do
     if [ "${os}" = "windows" ]; then
         target="doa.exe"
     fi
-    for arch in arm64 amd64; do 
+    for arch in amd64 arm64; do 
         podman build \
             --platform ${os}/${arch} \
             --build-arg PLATFORM_ARG=${arch} \

@@ -1,0 +1,63 @@
+#
+# Copyright (C) 2023 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  push:
+    branches: [ 'main' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Uninstall existing Podman and dependencies
+        run: |
+          sudo apt-get -y -q autoremove --purge podman
+
+      - name: Install latest podman
+        run: |
+          sudo apt-get update -y -qq
+          sudo mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$(lsb_release -rs)/Release.key \
+            | gpg --dearmor \
+            | sudo tee /etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg > /dev/null
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg]\
+              https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$(lsb_release -rs)/ /" \
+            | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get -qq -y install containernetworking-plugins podman
+
+      - run: podman system reset --force
+
+      - run: podman info
+
+      - uses: actions/checkout@v4
+
+      - name: Login to ghcr.io
+        run: podman login --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
+
+      - name: Publish Image
+        id: publish-image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/podman-desktop-image-checker-openshift-ext
+          ./scripts/build.sh ${IMAGE_NAME} ${GITHUB_SHA::7}
+          IMAGE_SHA=${IMAGE_NAME}:${GITHUB_SHA::7}
+          IMAGE_LATEST=${IMAGE_NAME}:latest
+          podman tag $IMAGE_SHA $IMAGE_LATEST
+          podman push $IMAGE_LATEST
