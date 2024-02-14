@@ -114,7 +114,7 @@ If you discover an issue please file a bug and we will fix it as soon as possibl
 
 License
 =======
-Apache, See [LICENSE](LICENSE) for more information.
+Apache 2.0, See [LICENSE](LICENSE) for more information.
 
 Acknowledgments
 ===============
