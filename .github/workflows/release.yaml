@@ -100,6 +100,8 @@ jobs:
       - run: podman info
 
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.githubTag }}
 
       - uses: actions/setup-node@v3
         with:
