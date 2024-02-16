@@ -32,8 +32,8 @@ env:
 
 jobs:
 
-  build:
-    name: Building
+  tag:
+    name: Tagging
     runs-on: ubuntu-22.04
     outputs:
       githubTag: ${{ steps.TAG_UTIL.outputs.githubTag}}
@@ -64,7 +64,6 @@ jobs:
           echo "Tagging with ${{ steps.TAG_UTIL.outputs.githubTag }}"
           git tag ${{ steps.TAG_UTIL.outputs.githubTag }}
           git push origin ${{ steps.TAG_UTIL.outputs.githubTag }}
-
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -76,10 +75,13 @@ jobs:
           draft: true
           prerelease: false
 
+  build:
+    needs: [tag]
+    runs-on: ubuntu-latest
+    steps:
       - name: Uninstall existing Podman and dependencies
         run: |
           sudo apt-get -y -q autoremove --purge podman
-
       - name: Install latest podman
         run: |
           sudo apt-get update -y -qq
@@ -93,10 +95,11 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get -qq -y install containernetworking-plugins podman
-
       - run: podman system reset --force
 
       - run: podman info
+
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
