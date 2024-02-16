@@ -55,9 +55,9 @@ jobs:
         run: |
           git config --local user.name ${{ github.actor }}
 
-          # Add the new version in package.json file
-          sed -i  "s#version\":\ \"\(.*\)\",#version\":\ \"${{ steps.TAG_UTIL.outputs.extVersion }}\",#g" package.json
-          git add package.json
+          # Add the new version in package.json file of the extension
+          sed -i  "s#version\":\ \"\(.*\)\",#version\":\ \"${{ steps.TAG_UTIL.outputs.extVersion }}\",#g" podman-desktop-extension/package.json
+          git add podman-desktop-extension/package.json
 
           # commit the changes
           git commit -m "chore: 🥁 tagging ${{ steps.TAG_UTIL.outputs.githubTag }} 🥳"
