@@ -104,7 +104,7 @@ Contributing
 ============
 This is an open source project open to anyone. This project welcomes contributions and suggestions!
 
-For information on getting started, refer to the [CONTRIBUTING instructions](CONTRIBUTING.md).
+For information on getting started, refer to the [CONTRIBUTING instructions](https://github.com/redhat-developer/podman-desktop-image-checker-openshift-ext/blob/main/CONTRIBUTING.md).
 
 
 Feedback & Questions
@@ -114,7 +114,7 @@ If you discover an issue please file a bug and we will fix it as soon as possibl
 
 License
 =======
-Apache 2.0, See [LICENSE](LICENSE) for more information.
+Apache 2.0, See [LICENSE](https://github.com/redhat-developer/podman-desktop-image-checker-openshift-ext/blob/main/LICENSE) for more information.
 
 Acknowledgments
 ===============
