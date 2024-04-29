@@ -98,7 +98,7 @@ doa[.exe] analyze -f /your/local/project/path[/Containerfile_name]
 Podman Desktop Extension
 ========================
 
-To install the extension on Podman Desktop, you can go to the "Extensions" tab in the sidebar and search for "Checker".
+To install the extension on Podman Desktop, you can click on the "Extensions" icon in the left sidebar and search for "Checker".
 
 Contributing
 ============
