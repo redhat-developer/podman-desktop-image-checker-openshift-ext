@@ -27,7 +27,7 @@ COPY ./podman-desktop-extension/vite.config.js /opt/app-root/src/
 COPY ./podman-desktop-extension/vitest.config.js /opt/app-root/src/
 COPY ./podman-desktop-extension/LICENSE /opt/app-root/src/
 COPY ./podman-desktop-extension/icon.png /opt/app-root/src/
-COPY ./podman-desktop-extension/README.md /opt/app-root/src/
+COPY ./README.md /opt/app-root/src/
 
 RUN yarn && yarn build
 
@@ -37,7 +37,7 @@ COPY --from=node-builder /opt/app-root/src/dist/ /extension/dist
 COPY ./podman-desktop-extension/package.json /extension/
 COPY ./podman-desktop-extension/LICENSE /extension/
 COPY ./podman-desktop-extension/icon.png /extension/
-COPY ./podman-desktop-extension/README.md /extension/
+COPY ./README.md /extension/
 
 
 FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/go-toolset:1.19.13-4.1697647145 as cli-builder
