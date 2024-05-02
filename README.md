@@ -17,7 +17,8 @@ USER root
 
 with this printed message 
 ```
-USER directive set to root at line 28 could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID
+USER directive set to root at line 28 could cause an unexpected behavior.
+In OpenShift, containers are run using arbitrarily assigned user ID
 ```
 
 ### Run Directive
@@ -36,8 +37,12 @@ RUN chmod 700 /app
 
 with this printed message 
 ```
-permission set on chmod 700 /app   at line 10-18 could cause an unexpected behavior. Is it an executable file? Try updating permissions to 770 otherwise set it to 760
-Explanation - in Openshift, directories and files need to be read/writable by the root group and files that must be executed should have group execute permissions
+permission set on chmod 700 /app at line 10-18 could cause an unexpected
+behavior. Is it an executable file? Try updating permissions to 770 otherwise
+set it to 760
+Explanation - in Openshift, directories and files need to be read/writable
+by the root group and files that must be executed should have group execute
+permissions
 ```
 
 #### chown
@@ -51,8 +56,8 @@ RUN chown -R node:node /app
 
 with this printed message 
 ```
-owner set on  chown -R node:node /app at line 10-18 could cause an unexpected behavior. 
-In OpenShift the group ID must always be set to the root group (0)
+owner set on  chown -R node:node /app at line 10-18 could cause an unexpected
+behavior. In OpenShift the group ID must always be set to the root group (0)
 ```
 
 #### sudo/su
@@ -66,9 +71,9 @@ RUN sudo node -v
 
 with this printed message 
 ```
-sudo/su command used in 'sudo node -v' at line 26 could cause an unexpected behavior. 
-In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-to an unexpected behavior
+sudo/su command used in 'sudo node -v' at line 26 could cause an unexpected
+behavior. In OpenShift, containers are run using arbitrarily assigned user ID
+and elevating privileges could lead to an unexpected behavior
 ```
 
 ### Expose directive
@@ -82,7 +87,8 @@ EXPOSE 80
 
 with this printed message 
 ```
-port 80 exposed at line 28 could be wrong. TCP/IP port numbers below 1024 are privileged port numbers
+port 80 exposed at line 28 could be wrong. TCP/IP port numbers below 1024 are
+privileged port numbers
 ```
 
 Cli
