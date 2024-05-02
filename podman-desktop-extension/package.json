@@ -2,7 +2,7 @@
   "name": "openshift-checker",
   "displayName": "Red Hat OpenShift Checker",
   "description": "Analyze a Containerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.",
-  "version": "0.0.1",
+  "version": "0.1.5",
   "icon": "icon.png",
   "publisher": "redhat",
   "license": "Apache-2.0",
