@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
     "lib": ["ES2017", "webworker"],
+    "module": "ESNext",
+    "target": "ESNext",
     "sourceMap": true,
     "rootDir": "src",
     "outDir": "dist",
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "moduleResolution": "Node",
+    "esModuleInterop": true
   },
   "include": ["src"]
 }
