@@ -18,10 +18,10 @@
 
 import type { NavigationBar } from '@podman-desktop/tests-playwright';
 import {
-    expect as playExpect,
-    ExtensionCardPage,
-    RunnerOptions,
-    test,
+  expect as playExpect,
+  ExtensionCardPage,
+  RunnerOptions,
+  test,
 } from '@podman-desktop/tests-playwright';
 import { ImageCheckerExtensionPage } from './pages/image-checker-extension-page';
 import { ImageCheckerImageDetailsPage } from './pages/image-checker-image-details-page';
@@ -59,14 +59,14 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     test.skip(!extensionInstalled);
     await removeExtension(navigationBar);
   });
-  
+
   test('Extension can be installed from an OCI image', async ({ navigationBar }) => {
     test.setTimeout(180000);
     const extensions = await navigationBar.openExtensions();
     await extensions.installExtensionFromOCIImage(imageName);
     await playExpect(extensionCard.card).toBeVisible();
   });
-  
+
   test('Extension is installed and active, extension card is present', async ({ navigationBar }) => {
     const extensions = await navigationBar.openExtensions();
     await playExpect
@@ -75,7 +75,7 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
     await playExpect(extensionCard.status, `Extension status is: ${extensionCard.status}`).toHaveText(activeExtensionStatus);
   });
-  
+
   test("Extension details show correct status, no error", async ({ page, navigationBar }) => {
     const extensions = await navigationBar.openExtensions();
     const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
@@ -92,7 +92,7 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     }
     await playExpect(errorTab, `Error Tab was present with stackTrace: ${stackTrace}`).not.toBeVisible();
   });
-  
+
   test('Image Checker tab is present in Image Details Page', async ({ navigationBar }) => {
     await imageCheckerTabPresent(navigationBar);
   });
