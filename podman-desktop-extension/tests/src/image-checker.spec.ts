@@ -94,7 +94,30 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
   });
 
   test('Image Checker tab is present in Image Details Page', async ({ navigationBar }) => {
-    await imageCheckerTabPresent(navigationBar);
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+  });
+});
+
+test.describe.serial('Red Hat Image Checker extension handling', () => {
+  test('Extension can be disabled', async ({ navigationBar }) => {
+    const extensions = await navigationBar.openExtensions();
+    playExpect(extensions.extensionIsInstalled(extensionLabel)).toBeTruthy();
+    const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
+    await extensionCard.disableExtension();
+    await playExpect(extensionCard.status).toHaveText(disabledExtensionStatus);
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).not.toBeDefined();
+  });
+
+  test('Extension can be re-enabled', async ({ navigationBar }) => {
+    const extensions = await navigationBar.openExtensions();
+    playExpect(extensions.extensionIsInstalled(extensionLabel)).toBeTruthy();
+    const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
+    await extensionCard.enableExtension();
+    await playExpect(extensionCard.status).toHaveText(activeExtensionStatus);
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
   });
 
   test('Extension can be removed', async ({ navigationBar }) => {
@@ -112,7 +135,7 @@ async function removeExtension(navigationBar: NavigationBar): Promise<void> {
     .toBeFalsy();
 }
 
-async function imageCheckerTabPresent(navigationBar: NavigationBar) {
+async function getImageDetailsPage(navigationBar: NavigationBar): Promise<ImageCheckerImageDetailsPage> {
   const imagesPage = await navigationBar.openImages();
   await playExpect(imagesPage.heading).toBeVisible();
 
@@ -124,5 +147,5 @@ async function imageCheckerTabPresent(navigationBar: NavigationBar) {
 
   const imageDetailPage = await imagesPage.openImageDetails(imageToCheck);
   const imageDetailsPage = new ImageCheckerImageDetailsPage(imageDetailPage.page, imageToCheck);
-  await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+  return imageDetailsPage;
 }
