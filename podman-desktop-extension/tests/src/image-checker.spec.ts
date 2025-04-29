@@ -34,6 +34,7 @@ const extensionLabelName = 'openshift-checker';
 const activeExtensionStatus = 'ACTIVE';
 const disabledExtensionStatus = 'DISABLED';
 const imageToCheck = 'ghcr.io/linuxcontainers/alpine';
+const isLinux = process.platform === 'linux';
 test.use({
   runnerOptions: new RunnerOptions({ customFolder: 'image-checker-tests-pd', autoUpdate: false, autoCheckUpdates: false }),
 });
@@ -92,10 +93,75 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     }
     await playExpect(errorTab, `Error Tab was present with stackTrace: ${stackTrace}`).not.toBeVisible();
   });
+});
 
-  test('Image Checker tab is present in Image Details Page', async ({ navigationBar }) => {
+test.describe.serial('Red Hat Image Checker extension verification', () => {
+  test('Extension is installed, check tab present in image details page', async ({ navigationBar }) => {
+    const extensions = await navigationBar.openExtensions();
+    if (await extensions.extensionIsInstalled(extensionLabel)) {
+      extensionInstalled = true;
+    }
     const imageDetailsPage = await getImageDetailsPage(navigationBar);
     await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+    await imageDetailsPage.imageCheckerTab.click();
+    await playExpect(imageDetailsPage.imageCheckerTabContent).toBeVisible();
+  });
+
+  test('Image checker can be turned off and on in image details page', async ({ navigationBar }) => {
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+    await imageDetailsPage.imageCheckerTab.click();
+
+    const provider = await imageDetailsPage.getProvider('Red Hat OpenShift Checker');
+    await playExpect(provider).toBeVisible();
+    const analysisResults = imageDetailsPage.analysisTable;
+    await playExpect(analysisResults).toBeVisible();
+    
+    // check if analysis is hidden
+    const providerCheckbox = await imageDetailsPage.getProviderCheckbox(provider);
+    await providerCheckbox.click();
+    await playExpect(analysisResults.getByRole("row")).not.toBeVisible();
+
+    // check if analysis is visible
+    await providerCheckbox.click();
+    await playExpect(analysisResults.getByRole("row")).toBeVisible();
+  });
+
+  test('Checker is present in image details page, analysis is visible', async ({ navigationBar }) => {
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await imageDetailsPage.imageCheckerTab.click();
+    await playExpect(imageDetailsPage.imageCheckerTabContent).toBeVisible();
+
+    // wait for the analysis to be complete
+    const analysisStatus = await imageDetailsPage.getAnalysisStatus();
+    await playExpect(analysisStatus).toBeVisible();
+    await playExpect
+    .poll(async () => await analysisStatus.innerText(), { timeout: 60000 })
+    .toContain('Image analysis complete');
+
+    // test the providers table
+    const providersTable = imageDetailsPage.providersTable;
+    await playExpect(providersTable).toBeVisible();
+    const redhatCheckerProvider = await imageDetailsPage.getProvider('Red Hat OpenShift Checker');
+    await playExpect(redhatCheckerProvider).toBeVisible();
+
+    const analysisTable = imageDetailsPage.analysisTable;
+    await playExpect(analysisTable).toBeVisible();
+
+    // test all the directives
+    if (isLinux) {
+      const resultError = await imageDetailsPage.getAnalysisResult('Analyze error');
+      await playExpect(resultError).toBeVisible();
+    }
+    else {
+      const resultRunDir = await imageDetailsPage.getAnalysisResult('Priviliged port exposed');
+      await playExpect(resultRunDir).toBeVisible();
+      const resultOwnDir = await imageDetailsPage.getAnalysisResult('Owner set');
+      await playExpect(resultOwnDir).toBeVisible();
+      const resultUserDir = await imageDetailsPage.getAnalysisResult('User set to root');
+      await playExpect(resultUserDir).toBeVisible();
+      // TODO: create custom image to test specific directives, instead of using httpd
+    }
   });
 });
 

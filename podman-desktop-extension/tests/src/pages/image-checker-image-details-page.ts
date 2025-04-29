@@ -21,9 +21,31 @@ import { DetailsPage } from '@podman-desktop/tests-playwright';
 
 export class ImageCheckerImageDetailsPage extends DetailsPage {
   readonly imageCheckerTab: Locator;
+  readonly imageCheckerTabContent: Locator;
+  readonly providersTable: Locator;
+  readonly analysisTable: Locator;
 
   constructor(page: Page, name: string) {
     super(page, name);
     this.imageCheckerTab = this.tabs.getByText('Check');
+    this.imageCheckerTabContent = this.page.getByRole('region', { name: 'Tab Content' });
+    this.providersTable = this.imageCheckerTabContent.getByLabel('Providers', { exact: true });
+    this.analysisTable = this.imageCheckerTabContent.getByLabel('Analysis Results', { exact: true });
+  }
+
+  async getAnalysisStatus(): Promise<Locator> {
+    return this.imageCheckerTabContent.getByRole('status', { name: 'Analysis Status' });
+  }
+
+  async getProvider(providerName: string): Promise<Locator> {
+    return this.providersTable.getByRole('row', {name: providerName});
+  }
+
+  async getAnalysisResult(analysisName: string): Promise<Locator> {
+    return this.analysisTable.getByRole('row', {name: analysisName});
+  }
+
+  async getProviderCheckbox(provider: Locator): Promise<Locator> {
+    return provider.getByRole('checkbox').locator('..'); // parent element of checkbox
   }
 }
