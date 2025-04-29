@@ -107,7 +107,7 @@ test.describe.serial('Red Hat Image Checker extension handling', () => {
     await extensionCard.disableExtension();
     await playExpect(extensionCard.status).toHaveText(disabledExtensionStatus);
     const imageDetailsPage = await getImageDetailsPage(navigationBar);
-    await playExpect(imageDetailsPage.imageCheckerTab).not.toBeDefined();
+    await playExpect(imageDetailsPage.imageCheckerTab).not.toBeVisible();
   });
 
   test('Extension can be re-enabled', async ({ navigationBar }) => {
