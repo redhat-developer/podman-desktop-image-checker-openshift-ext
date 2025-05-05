@@ -45,7 +45,15 @@ export class ImageCheckerImageDetailsPage extends DetailsPage {
     return this.analysisTable.getByRole('row', {name: analysisName});
   }
 
-  async getProviderCheckbox(provider: Locator): Promise<Locator> {
+  async getProviderCheckbox(providerName: string): Promise<Locator> {
+    const provider = await this.getProvider(providerName);
     return provider.getByRole('checkbox').locator('..'); // parent element of checkbox
+  }
+
+  async setProviderCheckbox(providerName: string, checked: boolean): Promise<void> {
+    const providerCheckbox = await this.getProviderCheckbox(providerName);
+    if (await providerCheckbox.isChecked() !== checked) {
+      await providerCheckbox.click();
+    }
   }
 }
