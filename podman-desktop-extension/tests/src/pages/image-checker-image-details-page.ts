@@ -24,6 +24,7 @@ export class ImageCheckerImageDetailsPage extends DetailsPage {
   readonly imageCheckerTabContent: Locator;
   readonly providersTable: Locator;
   readonly analysisTable: Locator;
+  readonly analysisStatus: Locator;
 
   constructor(page: Page, name: string) {
     super(page, name);
@@ -31,10 +32,7 @@ export class ImageCheckerImageDetailsPage extends DetailsPage {
     this.imageCheckerTabContent = this.page.getByRole('region', { name: 'Tab Content' });
     this.providersTable = this.imageCheckerTabContent.getByLabel('Providers', { exact: true });
     this.analysisTable = this.imageCheckerTabContent.getByLabel('Analysis Results', { exact: true });
-  }
-
-  async getAnalysisStatus(): Promise<Locator> {
-    return this.imageCheckerTabContent.getByRole('status', { name: 'Analysis Status' });
+    this.analysisStatus = this.imageCheckerTabContent.getByRole('status', { name: 'Analysis Status' });
   }
 
   async getProvider(providerName: string): Promise<Locator> {
@@ -45,7 +43,15 @@ export class ImageCheckerImageDetailsPage extends DetailsPage {
     return this.analysisTable.getByRole('row', {name: analysisName});
   }
 
-  async getProviderCheckbox(provider: Locator): Promise<Locator> {
+  async getProviderCheckbox(providerName: string): Promise<Locator> {
+    const provider = await this.getProvider(providerName);
     return provider.getByRole('checkbox').locator('..'); // parent element of checkbox
+  }
+
+  async setProviderCheckbox(providerName: string, checked: boolean): Promise<void> {
+    const providerCheckbox = await this.getProviderCheckbox(providerName);
+    if (await providerCheckbox.isChecked() !== checked) {
+      await providerCheckbox.click();
+    }
   }
 }
