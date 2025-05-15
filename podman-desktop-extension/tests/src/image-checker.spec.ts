@@ -22,6 +22,7 @@ import {
   ExtensionCardPage,
   RunnerOptions,
   test,
+  deleteImage,
 } from '@podman-desktop/tests-playwright';
 import { ImageCheckerExtensionPage } from './pages/image-checker-extension-page';
 import { ImageCheckerImageDetailsPage } from './pages/image-checker-image-details-page';
@@ -33,7 +34,11 @@ const extensionLabel = 'redhat.openshift-checker';
 const extensionLabelName = 'openshift-checker';
 const activeExtensionStatus = 'ACTIVE';
 const disabledExtensionStatus = 'DISABLED';
-const imageToCheck = 'ghcr.io/linuxcontainers/alpine';
+const imageToCheck = 'docker.io/library/httpd';
+const isLinux = process.platform === 'linux';
+const providerName = 'Red Hat OpenShift Checker';
+const extensionName = 'Red Hat OpenShift Checker extension';
+
 test.use({
   runnerOptions: new RunnerOptions({ customFolder: 'image-checker-tests-pd', autoUpdate: false, autoCheckUpdates: false }),
 });
@@ -43,8 +48,13 @@ test.beforeAll(async ({ runner, page, welcomePage }) => {
   extensionCard = new ExtensionCardPage(page, extensionLabelName, extensionLabel);
 });
 
-test.afterAll(async ({ runner }) => {
-  await runner.close();
+test.afterAll(async ({ runner, page }) => {
+  test.setTimeout(60000);
+  try {
+    deleteImage(page, imageToCheck);
+  } finally {
+    await runner.close();
+  }
 });
 
 test.describe.serial('Red Hat Image Checker extension installation', () => {
@@ -67,7 +77,7 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     await playExpect(extensionCard.card).toBeVisible();
   });
 
-  test('Extension is installed and active, extension card is present', async ({ navigationBar }) => {
+  test('Extension card is present in extension list, extension is active', async ({ navigationBar }) => {
     const extensions = await navigationBar.openExtensions();
     await playExpect
       .poll(async () => await extensions.extensionIsInstalled(extensionLabel), { timeout: 60000 })
@@ -79,7 +89,7 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
   test("Extension details show correct status, no error", async ({ page, navigationBar }) => {
     const extensions = await navigationBar.openExtensions();
     const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
-    await extensionCard.openExtensionDetails('Red Hat OpenShift Checker extension');
+    await extensionCard.openExtensionDetails(extensionName);
     const detailsPage = new ImageCheckerExtensionPage(page);
     await playExpect(detailsPage.heading).toBeVisible();
     await playExpect(detailsPage.status).toHaveText(activeExtensionStatus);
@@ -92,10 +102,81 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
     }
     await playExpect(errorTab, `Error Tab was present with stackTrace: ${stackTrace}`).not.toBeVisible();
   });
+});
 
-  test('Image Checker tab is present in Image Details Page', async ({ navigationBar }) => {
+test.describe.serial('Red Hat Image Checker extension functionality', () => {
+  test('Pull testing image, check tab is present in image details page', async ({ navigationBar }) => {
+    let imagesPage = await navigationBar.openImages();
+    await playExpect(imagesPage.heading).toBeVisible();
+
+    const pullImagePage = await imagesPage.openPullImage();
+    await playExpect(pullImagePage.heading).toBeVisible();
+    imagesPage = await pullImagePage.pullImage(imageToCheck);
     const imageDetailsPage = await getImageDetailsPage(navigationBar);
     await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+
+    await imageDetailsPage.imageCheckerTab.click();
+    await playExpect(imageDetailsPage.imageCheckerTabContent).toBeVisible();
+  });
+
+  test('Image checker can be turned off and on in image details page', async ({ navigationBar }) => {
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+    await imageDetailsPage.imageCheckerTab.click();
+
+    const provider = await imageDetailsPage.getProvider(providerName);
+    await playExpect(provider).toBeVisible();
+    const analysisResults = imageDetailsPage.analysisTable;
+    await playExpect(analysisResults).toBeVisible();
+
+    await imageDetailsPage.setProviderCheckbox(providerName, false);
+    await playExpect(await imageDetailsPage.getProviderCheckbox(providerName)).not.toBeChecked();
+    await playExpect(analysisResults.getByRole("row")).not.toBeVisible();
+
+    await imageDetailsPage.setProviderCheckbox(providerName, true);
+    await playExpect(await imageDetailsPage.getProviderCheckbox(providerName)).toBeChecked();
+    await playExpect(analysisResults.getByRole("row")).toBeVisible();
+  });
+
+  test('Verify analysis status, analysis providers and results are visible', async ({ navigationBar }) => {
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+    await imageDetailsPage.imageCheckerTab.click();
+    await playExpect(imageDetailsPage.imageCheckerTabContent).toBeVisible();
+
+    // wait for the analysis to be complete
+    const analysisStatus = await imageDetailsPage.getAnalysisStatus();
+    await playExpect(analysisStatus).toBeVisible();
+    await playExpect
+      .poll(async () => await analysisStatus.innerText(), { timeout: 60000 })
+      .toContain('Image analysis complete');
+
+    await playExpect(imageDetailsPage.providersTable).toBeVisible();
+
+    const redhatCheckerProvider = await imageDetailsPage.getProvider(providerName);
+    await playExpect(redhatCheckerProvider).toBeVisible();
+
+    await playExpect(imageDetailsPage.analysisTable).toBeVisible();
+  });
+
+  test('Verify analysis results', async ({ navigationBar }) => {
+    const imageDetailsPage = await getImageDetailsPage(navigationBar);
+    await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
+    await imageDetailsPage.imageCheckerTab.click();
+
+    if (isLinux) {
+      const resultError = await imageDetailsPage.getAnalysisResult('Analyze error');
+      await playExpect(resultError, 'Tests assume analysis not implemented on linux').toBeVisible();
+    }
+    else {
+      const checkExpose = await imageDetailsPage.getAnalysisResult('Privileged port exposed');
+      await playExpect(checkExpose).toBeVisible();
+      const checkChown = await imageDetailsPage.getAnalysisResult('Owner set');
+      await playExpect(checkChown).toBeVisible();
+      const checkUser = await imageDetailsPage.getAnalysisResult('User set to root');
+      await playExpect(checkUser).toBeVisible();
+      // TODO: create custom image to test specific directives, instead of using httpd
+    }
   });
 });
 
@@ -139,10 +220,7 @@ async function getImageDetailsPage(navigationBar: NavigationBar): Promise<ImageC
   const imagesPage = await navigationBar.openImages();
   await playExpect(imagesPage.heading).toBeVisible();
 
-  const pullImagePage = await imagesPage.openPullImage();
-  const updatedImages = await pullImagePage.pullImage(imageToCheck);
-
-  const exists = await updatedImages.waitForImageExists(imageToCheck);
+  const exists = await imagesPage.waitForImageExists(imageToCheck);
   playExpect(exists, `${imageToCheck} image not found in the image list`).toBeTruthy();
 
   const imageDetailPage = await imagesPage.openImageDetails(imageToCheck);

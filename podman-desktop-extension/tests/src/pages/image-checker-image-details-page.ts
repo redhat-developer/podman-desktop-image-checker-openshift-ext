@@ -21,9 +21,37 @@ import { DetailsPage } from '@podman-desktop/tests-playwright';
 
 export class ImageCheckerImageDetailsPage extends DetailsPage {
   readonly imageCheckerTab: Locator;
+  readonly imageCheckerTabContent: Locator;
+  readonly providersTable: Locator;
+  readonly analysisTable: Locator;
+  readonly analysisStatus: Locator;
 
   constructor(page: Page, name: string) {
     super(page, name);
     this.imageCheckerTab = this.tabs.getByText('Check');
+    this.imageCheckerTabContent = this.page.getByRole('region', { name: 'Tab Content' });
+    this.providersTable = this.imageCheckerTabContent.getByLabel('Providers', { exact: true });
+    this.analysisTable = this.imageCheckerTabContent.getByLabel('Analysis Results', { exact: true });
+    this.analysisStatus = this.imageCheckerTabContent.getByRole('status', { name: 'Analysis Status' });
+  }
+
+  async getProvider(providerName: string): Promise<Locator> {
+    return this.providersTable.getByRole('row', {name: providerName});
+  }
+
+  async getAnalysisResult(analysisName: string): Promise<Locator> {
+    return this.analysisTable.getByRole('row', {name: analysisName});
+  }
+
+  async getProviderCheckbox(providerName: string): Promise<Locator> {
+    const provider = await this.getProvider(providerName);
+    return provider.getByRole('checkbox').locator('..'); // parent element of checkbox
+  }
+
+  async setProviderCheckbox(providerName: string, checked: boolean): Promise<void> {
+    const providerCheckbox = await this.getProviderCheckbox(providerName);
+    if (await providerCheckbox.isChecked() !== checked) {
+      await providerCheckbox.click();
+    }
   }
 }
