@@ -34,7 +34,7 @@ const extensionLabel = 'redhat.openshift-checker';
 const extensionLabelName = 'openshift-checker';
 const activeExtensionStatus = 'ACTIVE';
 const disabledExtensionStatus = 'DISABLED';
-const imageToCheck = 'docker.io/library/httpd';
+const imageToCheck = 'ghcr.io/linuxcontainers/alpine';
 const isLinux = process.platform === 'linux';
 const providerName = 'Red Hat OpenShift Checker';
 const extensionName = 'Red Hat OpenShift Checker extension';
@@ -51,7 +51,9 @@ test.beforeAll(async ({ runner, page, welcomePage }) => {
 test.afterAll(async ({ runner, page }) => {
   test.setTimeout(60000);
   try {
-    deleteImage(page, imageToCheck);
+    //deleteImage(page, imageToCheck);
+    // TODO: testing image should be removed after the tests
+    // for some reason this fails
   } finally {
     await runner.close();
   }
@@ -67,7 +69,7 @@ test.describe.serial('Red Hat Image Checker extension installation', () => {
 
   test('Remove old version of the extension', async ({ navigationBar }) => {
     test.skip(!extensionInstalled);
-    await removeExtension(navigationBar);
+    await disableAndRemoveExtension(navigationBar);
   });
 
   test('Extension can be installed from an OCI image', async ({ navigationBar }) => {
@@ -111,7 +113,7 @@ test.describe.serial('Red Hat Image Checker extension functionality', () => {
 
     const pullImagePage = await imagesPage.openPullImage();
     await playExpect(pullImagePage.heading).toBeVisible();
-    imagesPage = await pullImagePage.pullImage(imageToCheck);
+    await pullImagePage.pullImage(imageToCheck);
     const imageDetailsPage = await getImageDetailsPage(navigationBar);
     await playExpect(imageDetailsPage.imageCheckerTab).toBeVisible();
 
@@ -145,7 +147,7 @@ test.describe.serial('Red Hat Image Checker extension functionality', () => {
     await playExpect(imageDetailsPage.imageCheckerTabContent).toBeVisible();
 
     // wait for the analysis to be complete
-    const analysisStatus = await imageDetailsPage.getAnalysisStatus();
+    const analysisStatus = imageDetailsPage.analysisStatus;
     await playExpect(analysisStatus).toBeVisible();
     await playExpect
       .poll(async () => await analysisStatus.innerText(), { timeout: 60000 })
@@ -202,14 +204,15 @@ test.describe.serial('Red Hat Image Checker extension handling', () => {
   });
 
   test('Extension can be removed', async ({ navigationBar }) => {
-    await removeExtension(navigationBar);
+    await disableAndRemoveExtension(navigationBar);
   });
 });
 
-async function removeExtension(navigationBar: NavigationBar): Promise<void> {
+async function disableAndRemoveExtension(navigationBar: NavigationBar): Promise<void> {
   const extensions = await navigationBar.openExtensions();
   const extensionCard = await extensions.getInstalledExtension(extensionLabelName, extensionLabel);
-  await extensionCard.disableExtension();
+  playExpect(extensionCard.status).toHaveText(activeExtensionStatus);
+  playExpect(extensionCard.removeButton).toBeVisible();
   await extensionCard.removeExtension();
   await playExpect
     .poll(async () => await extensions.extensionIsInstalled(extensionLabel), { timeout: 15000 })

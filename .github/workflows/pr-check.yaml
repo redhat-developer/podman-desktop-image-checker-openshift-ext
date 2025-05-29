@@ -1,0 +1,164 @@
+#
+# Copyright (C) 2023 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: pr-check
+
+on:
+  workflow_run:
+    workflows: 
+      - build-extension
+    types:
+      - completed
+
+jobs:
+  push-extension:
+    name: Push OCI image to ghcr
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Download extension oci flatten images
+        uses: actions/download-artifact@v4
+        with:
+          name: podman-desktop-image-checker-openshift-ext
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          
+      - name: Read image name
+        id: read-image
+        run: |
+          echo "IMAGE=$(cat podman-desktop-image-checker-openshift-ext.image)" >> "$GITHUB_ENV"
+          
+      - name: Log in to ghcr.io
+        uses: redhat-actions/podman-login@v1.7
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image for release
+        shell: bash
+        run: |
+          podman load -i podman-desktop-image-checker-openshift-ext.tar
+          podman push "$IMAGE"
+    
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-24.04
+    needs: push-extension
+    steps:
+      - name: Checkout the image checker repo
+        uses: actions/checkout@v4
+        with:
+          path: image-checker
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Get Latest Podman Desktop testing prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(curl --request GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/podman-desktop/testing-prereleases/tags?pages=1" | jq -r '.[0].name')
+          echo "Tag: $tag"
+          echo "PD_TAG=${tag}" >> $GITHUB_ENV
+          # releases id
+          id=$(curl --request GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/podman-desktop/testing-prereleases/releases/tags/$tag" | jq -r '.id')
+          echo "Release ID: $id"
+          # list assets with tag.gz suffix
+          url=$(curl --request GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/podman-desktop/testing-prereleases/releases/$id/assets" | jq -r '.[] | select (.name | test("tar.gz$"))' | jq -r '.browser_download_url')
+          echo "Podman Desktop testing prerelease url: ${url}"
+          curl -L -o podman-desktop.tar.gz "${url}"
+          mkdir -p podman-desktop
+          tar -xzf podman-desktop.tar.gz -C podman-desktop --strip-components=1
+          chmod +x podman-desktop/podman-desktop
+          echo "PODMAN_DESKTOP_BINARY=${GITHUB_WORKSPACE}/podman-desktop/podman-desktop" >> $GITHUB_ENV
+
+      - name: Ensure getting current HEAD version of the test framework
+        working-directory: image-checker/podman-desktop-extension
+        run: |
+          # workaround for https://github.com/containers/podman-desktop-extension-bootc/issues/712
+          version=$(npm view @podman-desktop/tests-playwright@next version)
+          echo "Version of @podman-desktop/tests-playwright to be used: $version"
+          jq --arg version "$version" '.devDependencies."@podman-desktop/tests-playwright" = $version' package.json > package.json_tmp && mv package.json_tmp package.json
+    
+      - name: Install yarn
+        working-directory: image-checker/podman-desktop-extension
+        run: |
+          yarn install --no-frozen-lockfile
+
+      - name: Revert unprivileged user namespace restrictions in Ubuntu 24.04
+        run: |
+          # allow unprivileged user namespace
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Run e2e tests
+        working-directory: image-checker/podman-desktop-extension
+        env:
+          EXTENSION_PREINSTALLED: true
+        run: |
+          yarn test:e2e
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          annotate_only: true
+          fail_on_failure: true
+          include_passed: true
+          detailed_summary: true
+          require_tests:  true
+          report_paths: '**/*results.xml'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-check
+          path: |
+            ./**/tests/**/output/
+            !./**/*.gguf
+            !./**/*.bin
+            !./**/tests/**/videos/*
+            !./**/tests/**/traces/*
+
+      - name: Upload test videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-check-videos
+          path: ./**/tests/playwright/output/videos/*
+
+      - name: Upload test traces
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-check-traces
+          path: ./**/tests/playwright/output/traces/*
