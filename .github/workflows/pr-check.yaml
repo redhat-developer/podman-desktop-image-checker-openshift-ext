@@ -1,0 +1,57 @@
+#
+# Copyright (C) 2023 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: pr-check
+
+on:
+  workflow_run:
+    workflows: 
+      - pr-build-extension
+    types:
+      - completed
+
+jobs:
+  push-extension:
+    name: Push OCI image to ghcr
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Download extension oci flatten images
+        uses: actions/download-artifact@448e3f862ab3ef47aa50ff917776823c9946035b # v4.3.0
+        with:
+          name: podman-desktop-image-checker-openshift-ext
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          
+      - name: Read image name
+        id: read-image
+        run: |
+          echo "IMAGE=$(cat podman-desktop-image-checker-openshift-ext.image)" >> "$GITHUB_ENV"
+          
+      - name: Log in to ghcr.io
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image for release
+        shell: bash
+        run: |
+          podman load -i podman-desktop-image-checker-openshift-ext.tar
+          podman push "$IMAGE"
