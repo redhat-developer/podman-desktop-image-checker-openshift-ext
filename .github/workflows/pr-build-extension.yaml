@@ -23,7 +23,7 @@ on:
     branches: [ 'main' ]
 
 jobs:
-  build-extension:
+  pr-build-extension:
     name: Build OCI image
     runs-on: ubuntu-24.04
     steps:
