@@ -19,8 +19,8 @@ name: pr-check
 
 on:
   workflow_run:
-    workflows: 
-      - build-extension
+    workflows:
+      - pr-build-extension
     types:
       - completed
 
