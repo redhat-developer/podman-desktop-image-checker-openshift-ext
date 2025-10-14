@@ -103,7 +103,7 @@ jobs:
         with:
           ref: ${{ needs.tag.outputs.githubTag }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 16
 
