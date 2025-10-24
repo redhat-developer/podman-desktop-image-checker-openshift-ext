@@ -43,7 +43,7 @@ jobs:
           echo "${IMAGE}" > podman-desktop-image-checker-openshift-ext.image
 
       - name: Upload extension oci flatten images
-        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8 # v4.6.2
+        uses: actions/upload-artifact@2d9f9cdfa99fedaddba68e9b5b5c281eca26cc63 # v4.6.2
         with:
           name: podman-desktop-image-checker-openshift-ext
           path: podman-desktop-image-checker-openshift-ext*
