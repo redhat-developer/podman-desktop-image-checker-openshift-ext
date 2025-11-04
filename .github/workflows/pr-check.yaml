@@ -32,7 +32,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Download extension oci flatten images
-        uses: actions/download-artifact@abefc31eafcfbdf6c5336127c1346fdae79ff41c # v4.3.0
+        uses: actions/download-artifact@f093f21ca4cfa7c75ccbbc2be54da76a0c7e1f05 # v4.3.0
         with:
           name: podman-desktop-image-checker-openshift-ext
           github-token: ${{ secrets.GITHUB_TOKEN }}
