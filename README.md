@@ -97,8 +97,8 @@ Cli
 To build and use the cli, execute
 
 ```
-go build -o doa[.exe]
-doa[.exe] analyze -f /your/local/project/path[/Containerfile_name]
+make doa
+./bin/doa analyze /your/local/project/path[/Containerfile_name]
 ```
 
 Podman Desktop Extension
