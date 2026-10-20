@@ -98,7 +98,7 @@ To build and use the cli, execute
 
 ```
 make doa
-./bin/doa analyze /your/local/project/path[/Dockerfile_name]
+./bin/doa analyze /your/local/project/path[/Containerfile_name]
 ```
 
 Podman Desktop Extension
