@@ -1,2 +1,6 @@
 .vscode
 bin
+node_modules
+test-results
+output
+dist

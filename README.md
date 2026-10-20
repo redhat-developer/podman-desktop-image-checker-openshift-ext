@@ -1,10 +1,10 @@
-# Docker OpenShift Analyzer
+# OpenShift Checker
 
-The Docker OpenShift analyzer is a tool whose goal is to analyze a Dockerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.
+The OpenShift checker is a tool whose goal is to analyze a Containerfile and highlight the directives and commands which could cause an unexpected behavior when running on an OpenShift cluster.
 
-In many cases a Dockerfile could work fine on a Kubernetes cluster and fail on OpenShift because of its security restrictions. This tool should help finding what is wrong and driving users to update their Dockerfiles to make them OpenShift compliant.
+In many cases a Containerfile could work fine on a Kubernetes cluster and fail on OpenShift because of its security restrictions. This tool should help finding what is wrong and driving users to update their Containerfiles to make them OpenShift compliant.
 
-The Dockerfile's directives and commands currently supported are listed below.
+The Containerfile's directives and commands currently supported are listed below.
 
 ### User directive
 
@@ -17,7 +17,8 @@ USER root
 
 with this printed message 
 ```
-USER directive set to root at line 28 could cause an unexpected behavior. In OpenShift, containers are run using arbitrarily assigned user ID
+USER directive set to root at line 28 could cause an unexpected behavior.
+In OpenShift, containers are run using arbitrarily assigned user ID
 ```
 
 ### Run Directive
@@ -36,8 +37,12 @@ RUN chmod 700 /app
 
 with this printed message 
 ```
-permission set on chmod 700 /app   at line 10-18 could cause an unexpected behavior. Is it an executable file? Try updating permissions to 770 otherwise set it to 760
-Explanation - in Openshift, directories and files need to be read/writable by the root group and files that must be executed should have group execute permissions
+permission set on chmod 700 /app at line 10-18 could cause an unexpected
+behavior. Is it an executable file? Try updating permissions to 770 otherwise
+set it to 760
+Explanation - in Openshift, directories and files need to be read/writable
+by the root group and files that must be executed should have group execute
+permissions
 ```
 
 #### chown
@@ -51,8 +56,8 @@ RUN chown -R node:node /app
 
 with this printed message 
 ```
-owner set on  chown -R node:node /app at line 10-18 could cause an unexpected behavior. 
-In OpenShift the group ID must always be set to the root group (0)
+owner set on  chown -R node:node /app at line 10-18 could cause an unexpected
+behavior. In OpenShift the group ID must always be set to the root group (0)
 ```
 
 #### sudo/su
@@ -66,9 +71,9 @@ RUN sudo node -v
 
 with this printed message 
 ```
-sudo/su command used in 'sudo node -v' at line 26 could cause an unexpected behavior. 
-In OpenShift, containers are run using arbitrarily assigned user ID and elevating privileges could lead 
-to an unexpected behavior
+sudo/su command used in 'sudo node -v' at line 26 could cause an unexpected
+behavior. In OpenShift, containers are run using arbitrarily assigned user ID
+and elevating privileges could lead to an unexpected behavior
 ```
 
 ### Expose directive
@@ -77,12 +82,13 @@ By default ports 1-1023 are privileged ports that only the root user can bind. W
 
 An example of a wrong instruction that the tool would detect is
 ```
-EXPOSE 8080
+EXPOSE 80
 ```
 
 with this printed message 
 ```
-port 80 exposed at line 28 could be wrong. TCP/IP port numbers below 1024 are privileged port numbers
+port 80 exposed at line 28 could be wrong. TCP/IP port numbers below 1024 are
+privileged port numbers
 ```
 
 Cli
@@ -95,27 +101,26 @@ make doa
 ./bin/doa analyze /your/local/project/path[/Dockerfile_name]
 ```
 
-or to analyze a binary image
+Podman Desktop Extension
+========================
 
-```
-./bin/doa --i repository/imagename:tag
-```
+To install the extension on Podman Desktop, you can click on the "Extensions" icon in the left sidebar and search for "Checker".
 
 Contributing
 ============
 This is an open source project open to anyone. This project welcomes contributions and suggestions!
 
-For information on getting started, refer to the [CONTRIBUTING instructions](CONTRIBUTING.md).
+For information on getting started, refer to the [CONTRIBUTING instructions](https://github.com/redhat-developer/podman-desktop-image-checker-openshift-ext/blob/main/CONTRIBUTING.md).
 
 
 Feedback & Questions
 ====================
 If you discover an issue please file a bug and we will fix it as soon as possible.
-* File a bug in [GitHub Issues](https://github.com/lstocchi/docker-openshift-analyzer).
+* File a bug in [GitHub Issues](https://github.com/redhat-developer/podman-desktop-image-checker-openshift-ext/issues).
 
 License
 =======
-EPL 2.0, See [LICENSE](LICENSE) for more information.
+Apache 2.0, See [LICENSE](https://github.com/redhat-developer/podman-desktop-image-checker-openshift-ext/blob/main/LICENSE) for more information.
 
 Acknowledgments
 ===============

@@ -1,32 +1,66 @@
-/*******************************************************************************
- * Copyright (c) 2022 Red Hat, Inc.
- * Distributed under license by Red Hat, Inc. All rights reserved.
- * This program is made available under the terms of the
- * Eclipse Public License v2.0 which accompanies this distribution,
- * and is available at http://www.eclipse.org/legal/epl-v20.html
+/**********************************************************************
+ * Copyright (C) 2022 Red Hat, Inc.
  *
- * Contributors:
- * Red Hat, Inc.
- ******************************************************************************/
-package command
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ ***********************************************************************/
+ package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/redhat-developer/docker-openshift-analyzer/pkg/decompiler"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
 )
 
+type ResultStatus string
+
+const (
+	StatusFailed ResultStatus = "failed"
+	StatusPass   ResultStatus = "success"
+)
+
+type ResultSeverity string
+
+const (
+	SeverityCritical ResultSeverity = "critical"
+	SeverityHigh     ResultSeverity = "high"
+	SeverityMedium   ResultSeverity = "medium"
+	SeverityLow      ResultSeverity = "low"
+)
+
+type Result struct {
+	Name        string         `json:"name"`
+	Status      ResultStatus   `json:"status"`
+	Severity    ResultSeverity `json:"severity"`
+	Description string         `json:"description"`
+}
+
 type Line struct {
 	Start int
 	End   int
 }
+
 type Command interface {
-	Analyze(*parser.Node, utils.Source, Line) []error
+	Analyze(context.Context, *parser.Node, utils.Source, Line) context.Context
+	PostProcess(ctx context.Context) []Result
 }
 
 var commandHandlers = map[string]Command{
@@ -36,52 +70,86 @@ var commandHandlers = map[string]Command{
 	utils.USER_INSTRUCTION:   User{},
 }
 
-func AnalyzePath(path string) []error {
+func AnalyzePath(path string) []Result {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return []error{fmt.Errorf("unable to analyze %s - error %s", path, err)}
+		return []Result{
+			{
+				Name:        "Analyze error",
+				Status:      StatusFailed,
+				Severity:    SeverityCritical,
+				Description: fmt.Sprintf("unable to analyze %s - error %s", path, err),
+			},
+		}
 	}
 
 	if fileInfo.IsDir() {
 		path = filepath.Join(path, "Dockerfile")
+		if _, err := os.Stat(path); err != nil {
+			path = filepath.Join(filepath.Base(path), "Containerfile")
+		}
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
-		return []error{fmt.Errorf("unable to open %s - error %s", path, err)}
+		return []Result{
+			{
+				Name:        "File not found",
+				Status:      StatusFailed,
+				Severity:    SeverityCritical,
+				Description: fmt.Sprintf("unable to open %s - error %s", path, err),
+			},
+		}
 	}
 	defer file.Close()
 
 	return AnalyzeFile(file)
 }
 
-func AnalyzeImage(image string) []error {
+func AnalyzeImage(image string) []Result {
 	node, err := decompiler.Decompile(image)
 	if err != nil {
-		return []error{fmt.Errorf("unable to analyze %s - error %s", image, err)}
+		return []Result{
+			{
+				Name:        "Analyze error",
+				Status:      StatusFailed,
+				Severity:    SeverityCritical,
+				Description: fmt.Sprintf("unable to analyze %s - error %s", image, err),
+			},
+		}
 	}
-	return AnalyzeNodeFromSource(node, utils.Source{
+	ctx := context.Background()
+	suggestions, _ := AnalyzeNodeFromSource(ctx, node, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
-func AnalyzeFile(file *os.File) []error {
+func AnalyzeFile(file *os.File) []Result {
 	res, err := parser.Parse(file)
 	if err != nil {
-		return []error{
-			fmt.Errorf("unable to analyze the Dockerfile. Error when parsing %s : %s", file.Name(), err.Error()),
+		return []Result{
+			{
+				Name:        "Parse error",
+				Status:      StatusFailed,
+				Severity:    SeverityCritical,
+				Description: fmt.Sprintf("unable to analyze the Containerfile. Error when parsing %s : %s", file.Name(), err.Error()),
+			},
 		}
 	}
 
-	return AnalyzeNodeFromSource(res.AST, utils.Source{
+	ctx := context.Background()
+
+	suggestions, _ := AnalyzeNodeFromSource(ctx, res.AST, utils.Source{
 		Name: "",
 		Type: utils.Image,
 	})
+	return suggestions
 }
 
-func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []error {
-	suggestions := []error{}
+func AnalyzeNodeFromSource(ctx context.Context, node *parser.Node, source utils.Source) ([]Result, context.Context) {
+	suggestions := []Result{}
 	commands := []string{}
 	for _, child := range node.Children {
 		commands = append(commands, child.Original) // TODO to be used if we need to check previous rows to make sugestions
@@ -93,14 +161,25 @@ func AnalyzeNodeFromSource(node *parser.Node, source utils.Source) []error {
 		if handler != nil {
 			for n := child.Next; n != nil; n = n.Next {
 				if n.Value == "" {
-					suggestions = append(suggestions, fmt.Errorf("%s %s has an empty value", child.Value, GenerateErrorLocation(source, line)))
+					suggestions = append(suggestions, Result{
+						Name:        "Wrong value",
+						Status:      StatusFailed,
+						Severity:    SeverityMedium,
+						Description: fmt.Sprintf("%s %s has an empty value", child.Value, GenerateErrorLocation(source, line)),
+					})
+
 				} else {
-					suggestions = append(suggestions, handler.Analyze(n, source, line)...)
+					ctx = handler.Analyze(ctx, n, source, line)
 				}
 			}
 		}
 	}
-	return suggestions
+	for key, _ := range commandHandlers {
+		handler := commandHandlers[key]
+
+		suggestions = append(suggestions, handler.PostProcess(ctx)...)
+	}
+	return suggestions, ctx
 }
 
 func IsCommand(text string, command string) bool {

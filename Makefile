@@ -36,7 +36,6 @@ GOFLAGS ?= -trimpath
 # This must never include the 'hack' directory
 export PATH := $(shell $(GO) env GOPATH)/bin:$(PATH)
 
-
 CROSS_BUILD_TARGETS := \
 	bin/doa.cross.linux.amd64 \
 	bin/doa.cross.linux.arm64 \

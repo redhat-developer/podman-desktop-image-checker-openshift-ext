@@ -1,8 +1,26 @@
-package utils
+/**********************************************************************
+ * Copyright (C) 2024 Red Hat, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ ***********************************************************************/
+ package utils
 
 import (
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/redhat-developer/docker-openshift-analyzer/pkg/utils"
+	"regexp"
 	"strings"
 )
 
@@ -26,7 +44,12 @@ var CONTAINERFILE_INSTRUCTIONS = []string{
 	utils.SHELL_INSTRUCTION,
 }
 
+var LABEL_PATTERN = regexp.MustCompile("^LABEL\\s+(.*)=(.*)$")
+
 func Line2Node(line string, root *parser.Node) error {
+	if strings.HasPrefix(line, utils.LABEL_INSTRUCTION) {
+		return parseLabel(line, root)
+	}
 	result, err := parser.Parse(strings.NewReader(line))
 	if err != nil {
 		return err
@@ -37,10 +60,26 @@ func Line2Node(line string, root *parser.Node) error {
 	return nil
 }
 
+func parseLabel(line string, root *parser.Node) error {
+	elements := LABEL_PATTERN.FindStringSubmatch(line)
+	parent := &parser.Node{
+		Value: "LABEL",
+	}
+	node := parent
+	for _, element := range elements[1:] {
+		node.Next = &parser.Node{
+			Value: element,
+		}
+		node = node.Next
+	}
+	root.AddChild(parent, 0, 0)
+	return nil
+}
+
 func ExtractCmd(str string) string {
 	index := strings.Index(str, utils.NOP)
 	if index > 0 {
-		return str[index+len(utils.NOP):]
+		return strings.TrimSpace(str[index+len(utils.NOP):])
 	}
 	index = strings.Index(str, utils.RUN_PREFIX)
 	if index >= 0 {
