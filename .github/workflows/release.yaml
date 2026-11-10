@@ -103,10 +103,6 @@ jobs:
         with:
           ref: ${{ needs.tag.outputs.githubTag }}
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 16
-
       - name: Login to ghcr.io
         run: podman login --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
 
