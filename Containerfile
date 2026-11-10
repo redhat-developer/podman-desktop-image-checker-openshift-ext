@@ -19,11 +19,17 @@ FROM --platform=linux/amd64 registry.access.redhat.com/ubi10/nodejs-24-minimal:1
 
 WORKDIR /opt/app-root/src
 
-RUN npm install -g yarn
+# pnpm runs an implicit dependency check before `run` scripts, which spawns a
+# nested `pnpm install`. Setting CI here rather than per-RUN makes every pnpm
+# invocation non-interactive, otherwise that nested install blocks on a prompt.
+ENV CI=true
+
+RUN npm install --global corepack@0.35.0 && corepack enable
 
 COPY ./podman-desktop-extension/src /opt/app-root/src/src
 COPY ./podman-desktop-extension/package.json /opt/app-root/src/
-COPY --chown=1001 ./podman-desktop-extension/yarn.lock /opt/app-root/src/
+COPY ./podman-desktop-extension/pnpm-lock.yaml /opt/app-root/src/
+COPY ./podman-desktop-extension/pnpm-workspace.yaml /opt/app-root/src/
 COPY ./podman-desktop-extension/tsconfig.json /opt/app-root/src/
 COPY ./podman-desktop-extension/vite.config.js /opt/app-root/src/
 COPY ./podman-desktop-extension/vitest.config.js /opt/app-root/src/
@@ -31,7 +37,7 @@ COPY ./podman-desktop-extension/LICENSE /opt/app-root/src/
 COPY ./podman-desktop-extension/icon.png /opt/app-root/src/
 COPY ./README.md /opt/app-root/src/
 
-RUN yarn && yarn build
+RUN pnpm install --frozen-lockfile && pnpm build
 
 
 FROM scratch as extension-builder
