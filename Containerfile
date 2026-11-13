@@ -15,7 +15,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-FROM --platform=linux/amd64 registry.access.redhat.com/ubi10/nodejs-24-minimal:1791463197@sha256:498ccfc43f6fe349a4d87db6af6d83ab420e9450f3800140cdc90c290dcd462f as node-builder
+# The builder is pinned to linux/amd64: its output is platform independent, and
+# the image is also built for windows/darwin targets, which have no Node image.
+FROM --platform=linux/amd64 registry.access.redhat.com/ubi10/nodejs-24-minimal:1791463197@sha256:498ccfc43f6fe349a4d87db6af6d83ab420e9450f3800140cdc90c290dcd462f AS builder
 
 WORKDIR /opt/app-root/src
 
@@ -24,28 +26,21 @@ WORKDIR /opt/app-root/src
 # invocation non-interactive, otherwise that nested install blocks on a prompt.
 ENV CI=true
 
-RUN npm install --global corepack@0.35.0 && corepack enable
+COPY --chown=1001:1001 ./podman-desktop-extension .
+COPY --chown=1001:1001 ./README.md .
 
-COPY ./podman-desktop-extension/src /opt/app-root/src/src
-COPY ./podman-desktop-extension/package.json /opt/app-root/src/
-COPY ./podman-desktop-extension/pnpm-lock.yaml /opt/app-root/src/
-COPY ./podman-desktop-extension/pnpm-workspace.yaml /opt/app-root/src/
-COPY ./podman-desktop-extension/tsconfig.json /opt/app-root/src/
-COPY ./podman-desktop-extension/vite.config.js /opt/app-root/src/
-COPY ./podman-desktop-extension/vitest.config.js /opt/app-root/src/
-COPY ./podman-desktop-extension/LICENSE /opt/app-root/src/
-COPY ./podman-desktop-extension/icon.png /opt/app-root/src/
-COPY ./README.md /opt/app-root/src/
+RUN npm i -g corepack@0.36.0 && corepack enable
 
-RUN pnpm install --frozen-lockfile && pnpm build
+RUN pnpm install
+RUN pnpm build
 
-
-FROM scratch as extension-builder
-COPY --from=node-builder /opt/app-root/src/dist/ /extension/dist
-COPY ./podman-desktop-extension/package.json /extension/
-COPY ./podman-desktop-extension/LICENSE /extension/
-COPY ./podman-desktop-extension/icon.png /extension/
-COPY ./README.md /extension/
+# Assemble the extension layout, so the final stage has a single extension COPY
+RUN mkdir -p /opt/app-root/extension
+RUN cp -r dist /opt/app-root/extension/
+RUN cp package.json /opt/app-root/extension/
+RUN cp icon.png /opt/app-root/extension/
+RUN cp LICENSE /opt/app-root/extension/
+RUN cp README.md /opt/app-root/extension/
 
 
 FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/go-toolset:1.19.13-4.1697647145 as cli-builder
@@ -71,6 +66,6 @@ LABEL org.opencontainers.image.title="OpenShift Checker" \
         org.opencontainers.image.vendor="Red Hat" \
         io.podman-desktop.api.version=">= 1.5.3"
 
-COPY --from=extension-builder /extension /extension
+COPY --from=builder /opt/app-root/extension /extension
 
 COPY --from=cli-builder /opt/app-root/src/bin/doa.cross.${OS_ARG}.${PLATFORM_ARG} /extension/${TARGET_ARG}
