@@ -9,7 +9,10 @@ for os in linux windows darwin; do
         target="doa.exe"
     fi
     for arch in amd64 arm64; do 
+        # Without --layers=false, a windows target commits the linux builder
+        # stage RUN layers in windows format, dropping their files.
         podman build \
+            --layers=false \
             --platform ${os}/${arch} \
             --build-arg PLATFORM_ARG=${arch} \
             --build-arg OS_ARG=${os} \
